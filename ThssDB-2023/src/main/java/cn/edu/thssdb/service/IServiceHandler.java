@@ -2,7 +2,6 @@ package cn.edu.thssdb.service;
 
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;

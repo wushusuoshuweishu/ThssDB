@@ -1,10 +1,15 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.DatabaseNotExistException;
+import cn.edu.thssdb.utils.Global;
+
+import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Manager {
   private HashMap<String, Database> databases;
+  public Database currentDatabase;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   public static Manager getInstance() {
@@ -13,18 +18,56 @@ public class Manager {
 
   public Manager() {
     // TODO
+    databases = new HashMap<>();
+    currentDatabase = null;
+    File managerFolder = new File(Global.DBMS_DIR + File.separator + "data");
+    if(!managerFolder.exists())
+      managerFolder.mkdirs();
+    // this.recover();
   }
 
-  private void createDatabaseIfNotExists() {
+  private void createDatabaseIfNotExists(String databaseName) {
     // TODO
+    try {
+      lock.writeLock().lock();
+      if (!databases.containsKey(databaseName))
+        databases.put(databaseName, new Database(databaseName));
+      if (currentDatabase == null) {
+        try {
+          lock.readLock().lock();
+          currentDatabase = databases.get(databaseName);
+        } finally {
+          lock.readLock().unlock();
+        }
+      }
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
-  private void deleteDatabase() {
-    // TODO
+  private void deleteDatabase(String databaseName) {
+    try {
+      lock.writeLock().lock();
+      if (!databases.containsKey(databaseName))
+        throw new DatabaseNotExistException(databaseName);
+      Database database = databases.get(databaseName);
+      database.dropDatabase();
+      databases.remove(databaseName);
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
-  public void switchDatabase() {
+  public void switchDatabase(String databaseName) {
     // TODO
+    try {
+      lock.readLock().lock();
+      if (!databases.containsKey(databaseName))
+        throw new DatabaseNotExistException(databaseName);
+      currentDatabase = databases.get(databaseName);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   private static class ManagerHolder {
