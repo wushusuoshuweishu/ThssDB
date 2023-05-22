@@ -26,7 +26,7 @@ public class Manager {
     // this.recover();
   }
 
-  private void createDatabaseIfNotExists(String databaseName) {
+  public void createDatabaseIfNotExists(String databaseName) {
     // TODO
     try {
       lock.writeLock().lock();
@@ -45,13 +45,13 @@ public class Manager {
     }
   }
 
-  private void deleteDatabase(String databaseName) {
+  public void deleteDatabase(String databaseName) {
     try {
       lock.writeLock().lock();
       if (!databases.containsKey(databaseName))
         throw new DatabaseNotExistException(databaseName);
       Database database = databases.get(databaseName);
-      database.dropDatabase();
+      //database.dropDatabase();
       databases.remove(databaseName);
     } finally {
       lock.writeLock().unlock();

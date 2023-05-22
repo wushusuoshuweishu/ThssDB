@@ -20,14 +20,22 @@ package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
 
 public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
+  private Manager manager;
+
+  public ThssDBSQLVisitor(){
+    this.manager = Manager.getInstance();
+  }
   @Override
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
-    return new CreateDatabasePlan(ctx.databaseName().getText());
+    String name = ctx.databaseName().getText();
+    manager.createDatabaseIfNotExists(name);
+    return new CreateDatabasePlan(name);
   }
 
   // TODO: parser to more logical plan
