@@ -72,6 +72,21 @@ public class Database {
     }
   }
 
+  public void dropDatabase() {
+    try {
+      lock.writeLock().lock();
+      for (Table table : this.tables.values()) {
+        File file = new File(table.getTableMetaPath());
+        file.delete();
+        table.dropTable();
+      }
+      this.tables.clear();
+      this.tables = null;
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
   public String select(QueryTable[] queryTables) {
     // TODO
     QueryResult queryResult = new QueryResult(queryTables);
