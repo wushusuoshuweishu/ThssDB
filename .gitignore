@@ -25,3 +25,11 @@ replay_pid*
 
 .idea
 .DS_Store
+classes/
+annotations/
+generated-test-sources/
+maven-archiver/
+maven-status/
+test-classes/
+tools/
+ThssDB-2023-1.0-SNAPSHOT.jar
