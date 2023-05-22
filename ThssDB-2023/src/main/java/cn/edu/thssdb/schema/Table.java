@@ -35,6 +35,8 @@ public class Table implements Iterable<Row> {
       }
     }
     if (this.primaryIndex < 0) throw new PrimaryErrorException(this.tableName);
+
+    recover();
   }
 
   private void recover() {
@@ -115,7 +117,7 @@ public class Table implements Iterable<Row> {
   }
 
 
-  private void persist(){
+  public void persist(){
     try{
       this.lock.writeLock().lock();
       serialize();

@@ -22,6 +22,12 @@ public class Column implements Comparable<Column> {
     return name.compareTo(e.name);
   }
 
+  public static Column parseColumn(String s){
+    String[] sArray = s.split(",");
+    return new Column(sArray[0], ColumnType.valueOf(sArray[1]), Integer.parseInt(sArray[2]),
+            Boolean.parseBoolean(sArray[3]), Integer.parseInt(sArray[4]));
+  }
+
   public boolean is_primary() {
     return this.primary == 1;
   }
