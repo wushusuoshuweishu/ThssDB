@@ -58,12 +58,11 @@ public class Table implements Iterable<Row> {
     // TODO
     try {
       this.lock.writeLock().lock();
-      if(!this.isRowValid(row))
-        throw new RuntimeException();
-      if(this.index.contains(row.getEntries().get(this.primaryIndex)))
+      if (!this.isRowValid(row)) throw new RuntimeException();
+      if (this.index.contains(row.getEntries().get(this.primaryIndex)))
         throw new DuplicateKeyException();
       this.index.put(row.getEntries().get(this.primaryIndex), row);
-    }finally {
+    } finally {
       this.lock.writeLock().unlock();
     }
   }
@@ -72,10 +71,10 @@ public class Table implements Iterable<Row> {
     // TODO
     try {
       this.lock.writeLock().lock();
-      if(!this.index.contains(row.getEntries().get(this.primaryIndex)))
+      if (!this.index.contains(row.getEntries().get(this.primaryIndex)))
         throw new KeyNotExistException();
       this.index.remove(row.getEntries().get(this.primaryIndex));
-    }finally {
+    } finally {
       this.lock.writeLock().unlock();
     }
   }
@@ -84,14 +83,14 @@ public class Table implements Iterable<Row> {
     // TODO
     try {
       this.lock.writeLock().lock();
-      if(!this.isRowValid(newRow))
-        throw new RuntimeException();
+      if (!this.isRowValid(newRow)) throw new RuntimeException();
       Entry newPrimaryValue = newRow.getEntries().get(this.primaryIndex);
-      if(!primaryCell.equals(newPrimaryValue) && this.index.contains(newRow.getEntries().get(this.primaryIndex)))
+      if (!primaryCell.equals(newPrimaryValue)
+          && this.index.contains(newRow.getEntries().get(this.primaryIndex)))
         throw new DuplicateKeyException();
       this.index.remove(primaryCell);
       this.index.put(newPrimaryValue, newRow);
-    }finally {
+    } finally {
       this.lock.writeLock().unlock();
     }
   }
@@ -173,21 +172,18 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  private Boolean isRowValid(Row row){
-    if(row.getEntries().size()!=this.columns.size())
-      return Boolean.FALSE;
-    for(int i=0;i<row.getEntries().size();i++) {
+  private Boolean isRowValid(Row row) {
+    if (row.getEntries().size() != this.columns.size()) return Boolean.FALSE;
+    for (int i = 0; i < row.getEntries().size(); i++) {
       String entryValueType = row.getEntries().get(i).getValueType();
       Column column = this.columns.get(i);
-      if(entryValueType.equals(Global.ENTRY_NULL) && column.nonNullable()){
+      if (entryValueType.equals(Global.ENTRY_NULL) && column.nonNullable()) {
         return Boolean.FALSE;
-      }
-      else{
-        if (!entryValueType.equals(column.getColumnType().name()))
-          return Boolean.FALSE;
+      } else {
+        if (!entryValueType.equals(column.getColumnType().name())) return Boolean.FALSE;
         Comparable entryValue = row.getEntries().get(i).value;
-        if(entryValueType.equals(STRING.name()) && ((String) entryValue).length()>column.getMaxLength())
-          return Boolean.FALSE;
+        if (entryValueType.equals(STRING.name())
+            && ((String) entryValue).length() > column.getMaxLength()) return Boolean.FALSE;
       }
     }
     return Boolean.TRUE;

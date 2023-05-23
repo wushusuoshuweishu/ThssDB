@@ -91,12 +91,11 @@ public class Manager {
       while ((line = bufferedReader.readLine()) != null) {
         System.out.println("recover database" + line);
         createDatabaseIfNotExists(line);
-
       }
       bufferedReader.close();
       reader.close();
     } catch (Exception e) {
-      //throw new FileIOException(managerDataFile.getName());
+      // throw new FileIOException(managerDataFile.getName());
       throw new RuntimeException();
     }
   }
