@@ -21,8 +21,7 @@ public class Manager {
     databases = new HashMap<>();
     currentDatabase = null;
     File managerFolder = new File(Global.DBMS_DIR + File.separator + "data");
-    if(!managerFolder.exists())
-      managerFolder.mkdirs();
+    if (!managerFolder.exists()) managerFolder.mkdirs();
     // this.recover();
   }
 
@@ -48,10 +47,9 @@ public class Manager {
   public void deleteDatabase(String databaseName) {
     try {
       lock.writeLock().lock();
-      if (!databases.containsKey(databaseName))
-        throw new DatabaseNotExistException(databaseName);
+      if (!databases.containsKey(databaseName)) throw new DatabaseNotExistException(databaseName);
       Database database = databases.get(databaseName);
-      //database.dropDatabase();
+      // database.dropDatabase();
       databases.remove(databaseName);
     } finally {
       lock.writeLock().unlock();
@@ -62,8 +60,7 @@ public class Manager {
     // TODO
     try {
       lock.readLock().lock();
-      if (!databases.containsKey(databaseName))
-        throw new DatabaseNotExistException(databaseName);
+      if (!databases.containsKey(databaseName)) throw new DatabaseNotExistException(databaseName);
       currentDatabase = databases.get(databaseName);
     } finally {
       lock.readLock().unlock();

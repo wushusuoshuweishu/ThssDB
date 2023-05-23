@@ -26,11 +26,10 @@ public class IServiceHandler implements IService.Iface {
 
   private static final AtomicInteger sessionCnt = new AtomicInteger(0);
 
-  public IServiceHandler(){
+  public IServiceHandler() {
     super();
     manager = Manager.getInstance();
   }
-
 
   @Override
   public GetTimeResp getTime(GetTimeReq req) throws TException {

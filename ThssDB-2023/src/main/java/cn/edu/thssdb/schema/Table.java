@@ -44,9 +44,8 @@ public class Table implements Iterable<Row> {
     try {
       this.lock.writeLock().lock();
       ArrayList<Row> rowsOnDisk = deserialize();
-      for(Row row: rowsOnDisk)
-        this.index.put(row.getEntries().get(this.primaryIndex), row);
-    }finally {
+      for (Row row : rowsOnDisk) this.index.put(row.getEntries().get(this.primaryIndex), row);
+    } finally {
       this.lock.writeLock().unlock();
     }
   }
@@ -68,20 +67,19 @@ public class Table implements Iterable<Row> {
     try {
       File tableFolder = new File(this.getTableFolderPath());
       if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory())
-        //throw new FileIOException(this.getTableFolderPath() + " on serializing table in folder");
+        // throw new FileIOException(this.getTableFolderPath() + " on serializing table in folder");
         throw new RuntimeException();
       File tableFile = new File(this.getTablePath());
       if (!tableFile.exists() ? !tableFile.createNewFile() : !tableFile.isFile())
-        //throw new FileIOException(this.getTablePath() + " on serializing table to file");
+        // throw new FileIOException(this.getTablePath() + " on serializing table to file");
         throw new RuntimeException();
       FileOutputStream fileOutputStream = new FileOutputStream(this.getTablePath());
       ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
-      for(Row row: this)
-        objectOutputStream.writeObject(row);
+      for (Row row : this) objectOutputStream.writeObject(row);
       objectOutputStream.close();
       fileOutputStream.close();
-    }catch (IOException e){
-      //throw new FileIOException(this.getTablePath() + " on serializing");
+    } catch (IOException e) {
+      // throw new FileIOException(this.getTablePath() + " on serializing");
       throw new RuntimeException();
     }
   }
@@ -91,41 +89,39 @@ public class Table implements Iterable<Row> {
     try {
       File tableFolder = new File(this.getTableFolderPath());
       if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory())
-        //throw new FileIOException(this.getTableFolderPath() + " when deserialize");
+        // throw new FileIOException(this.getTableFolderPath() + " when deserialize");
         throw new RuntimeException();
       File tableFile = new File(this.getTablePath());
-      if(!tableFile.exists())
-        return new ArrayList<>();
+      if (!tableFile.exists()) return new ArrayList<>();
       FileInputStream fileInputStream = new FileInputStream(this.getTablePath());
       ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
       ArrayList<Row> rowsOnDisk = new ArrayList<>();
       Object tmpObj;
-      while(fileInputStream.available() > 0){
+      while (fileInputStream.available() > 0) {
         tmpObj = objectInputStream.readObject();
         rowsOnDisk.add((Row) tmpObj);
       }
       objectInputStream.close();
       fileInputStream.close();
       return rowsOnDisk;
-    }catch (IOException e){
-      //throw new FileIOException(this.getTablePath() + " when deserialize");
+    } catch (IOException e) {
+      // throw new FileIOException(this.getTablePath() + " when deserialize");
       throw new RuntimeException();
-    }catch (ClassNotFoundException e){
-      //throw new FileIOException(this.getTablePath() + " when deserialize(serialized object cannot be found)");
+    } catch (ClassNotFoundException e) {
+      // throw new FileIOException(this.getTablePath() + " when deserialize(serialized object cannot
+      // be found)");
       throw new RuntimeException();
     }
   }
 
-
-  public void persist(){
-    try{
+  public void persist() {
+    try {
       this.lock.writeLock().lock();
       serialize();
-    }finally {
+    } finally {
       this.lock.writeLock().unlock();
     }
   }
-
 
   public void dropTable() { // remove table data file
     try {

@@ -28,9 +28,10 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   private Manager manager;
 
-  public ThssDBSQLVisitor(){
+  public ThssDBSQLVisitor() {
     this.manager = Manager.getInstance();
   }
+
   @Override
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     String name = ctx.databaseName().getText();
