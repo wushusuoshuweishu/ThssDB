@@ -18,6 +18,7 @@ public class Global {
   public static final String QUIT = "quit;";
   public static final String DBMS_DIR = "thssdb";
   public static final String META_SUFFIX = "_meta";
+  public static final String ENTRY_NULL = "null";
 
   public static final String S_URL_INTERNAL = "jdbc:default:connection";
 }
