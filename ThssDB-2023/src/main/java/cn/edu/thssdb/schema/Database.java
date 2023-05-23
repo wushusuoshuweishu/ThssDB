@@ -31,12 +31,11 @@ public class Database {
       try {
         FileOutputStream fileOutputStream = new FileOutputStream(filename);
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        for (Column column : columns)
-          outputStreamWriter.write(column.toString() + "\n");
+        for (Column column : columns) outputStreamWriter.write(column.toString() + "\n");
         outputStreamWriter.close();
         fileOutputStream.close();
       } catch (Exception e) {
-        //throw new FileIOException(filename);
+        // throw new FileIOException(filename);
         throw new RuntimeException();
       }
     }
@@ -98,16 +97,16 @@ public class Database {
     System.out.println("! try to recover database " + this.name);
     File tableFolder = new File(this.getDatabaseTableFolderPath());
     File[] files = tableFolder.listFiles();
-//        for(File f: files) System.out.println("...." + f.getName());
+    //        for(File f: files) System.out.println("...." + f.getName());
     if (files == null) return;
 
     for (File file : files) {
       if (!file.isFile() || !file.getName().endsWith(Global.META_SUFFIX)) continue;
       try {
         String fileName = file.getName();
-        String tableName = fileName.substring(0,fileName.length()-Global.META_SUFFIX.length());
+        String tableName = fileName.substring(0, fileName.length() - Global.META_SUFFIX.length());
         if (this.tables.containsKey(tableName))
-          //throw new DuplicateTableException(tableName);
+          // throw new DuplicateTableException(tableName);
           throw new RuntimeException();
 
         ArrayList<Column> columnList = new ArrayList<>();
@@ -120,8 +119,7 @@ public class Database {
         reader.close();
         Table table = new Table(this.name, tableName, columnList.toArray(new Column[0]));
         System.out.println(table.toString());
-        for(Row row: table)
-          System.out.println(row.toString());
+        for (Row row : table) System.out.println(row.toString());
         this.tables.put(tableName, table);
       } catch (Exception ignored) {
       }
@@ -132,20 +130,18 @@ public class Database {
     // TODO
     try {
       this.lock.writeLock().lock();
-      for (Table table : this.tables.values())
-        table.persist();
+      for (Table table : this.tables.values()) table.persist();
       this.persist();
     } finally {
       this.lock.writeLock().unlock();
     }
   }
 
-
-  public String getDatabasePath(){
+  public String getDatabasePath() {
     return Global.DBMS_DIR + File.separator + "data" + File.separator + this.name;
   }
+
   public String getDatabaseTableFolderPath() {
     return this.getDatabasePath() + File.separator + "tables";
   }
 }
-
