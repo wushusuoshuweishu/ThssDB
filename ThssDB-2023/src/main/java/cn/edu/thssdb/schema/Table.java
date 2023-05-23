@@ -1,5 +1,7 @@
 package cn.edu.thssdb.schema;
 
+import cn.edu.thssdb.exception.DuplicateKeyException;
+import cn.edu.thssdb.exception.KeyNotExistException;
 import cn.edu.thssdb.exception.PrimaryErrorException;
 import cn.edu.thssdb.index.BPlusTree;
 import cn.edu.thssdb.utils.Global;
@@ -10,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static cn.edu.thssdb.type.ColumnType.STRING;
 
 public class Table implements Iterable<Row> {
   ReentrantReadWriteLock lock;
@@ -50,16 +54,45 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  public void insert() {
+  public void insert(Row row) {
     // TODO
+    try {
+      this.lock.writeLock().lock();
+      if (!this.isRowValid(row)) throw new RuntimeException();
+      if (this.index.contains(row.getEntries().get(this.primaryIndex)))
+        throw new DuplicateKeyException();
+      this.index.put(row.getEntries().get(this.primaryIndex), row);
+    } finally {
+      this.lock.writeLock().unlock();
+    }
   }
 
-  public void delete() {
+  public void delete(Row row) {
     // TODO
+    try {
+      this.lock.writeLock().lock();
+      if (!this.index.contains(row.getEntries().get(this.primaryIndex)))
+        throw new KeyNotExistException();
+      this.index.remove(row.getEntries().get(this.primaryIndex));
+    } finally {
+      this.lock.writeLock().unlock();
+    }
   }
 
-  public void update() {
+  public void update(Entry primaryCell, Row newRow) {
     // TODO
+    try {
+      this.lock.writeLock().lock();
+      if (!this.isRowValid(newRow)) throw new RuntimeException();
+      Entry newPrimaryValue = newRow.getEntries().get(this.primaryIndex);
+      if (!primaryCell.equals(newPrimaryValue)
+          && this.index.contains(newRow.getEntries().get(this.primaryIndex)))
+        throw new DuplicateKeyException();
+      this.index.remove(primaryCell);
+      this.index.put(newPrimaryValue, newRow);
+    } finally {
+      this.lock.writeLock().unlock();
+    }
   }
 
   private void serialize() {
@@ -137,6 +170,23 @@ public class Table implements Iterable<Row> {
     } finally {
       this.lock.writeLock().unlock();
     }
+  }
+
+  private Boolean isRowValid(Row row) {
+    if (row.getEntries().size() != this.columns.size()) return Boolean.FALSE;
+    for (int i = 0; i < row.getEntries().size(); i++) {
+      String entryValueType = row.getEntries().get(i).getValueType();
+      Column column = this.columns.get(i);
+      if (entryValueType.equals(Global.ENTRY_NULL) && column.nonNullable()) {
+        return Boolean.FALSE;
+      } else {
+        if (!entryValueType.equals(column.getColumnType().name())) return Boolean.FALSE;
+        Comparable entryValue = row.getEntries().get(i).value;
+        if (entryValueType.equals(STRING.name())
+            && ((String) entryValue).length() > column.getMaxLength()) return Boolean.FALSE;
+      }
+    }
+    return Boolean.TRUE;
   }
 
   private class TableIterator implements Iterator<Row> {

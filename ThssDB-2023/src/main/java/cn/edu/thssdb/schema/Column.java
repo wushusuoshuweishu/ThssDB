@@ -36,6 +36,18 @@ public class Column implements Comparable<Column> {
     return this.primary == 1;
   }
 
+  public boolean nonNullable() {
+    return this.notNull;
+  }
+
+  public ColumnType getColumnType() {
+    return this.type;
+  }
+
+  public int getMaxLength() {
+    return this.maxLength;
+  }
+
   public String toString() {
     return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
   }
