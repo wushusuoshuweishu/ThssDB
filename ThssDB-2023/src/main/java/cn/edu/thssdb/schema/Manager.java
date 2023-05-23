@@ -4,6 +4,8 @@ import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -66,10 +68,27 @@ public class Manager {
       lock.readLock().unlock();
     }
   }
+  public void persist() {
+    try {
+      FileOutputStream fos = new FileOutputStream(Manager.getManagerDataFilePath());
+      OutputStreamWriter writer = new OutputStreamWriter(fos);
+      for (String databaseName : databases.keySet())
+        writer.write(databaseName + "\n");
+      writer.close();
+      fos.close();
+    } catch (Exception e) {
+      //throw new FileIOException(Manager.getManagerDataFilePath());
+      throw  new RuntimeException();
+    }
+  }
+
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
     private ManagerHolder() {}
+  }
+  public static String getManagerDataFilePath(){
+    return Global.DBMS_DIR + File.separator + "data" + File.separator + "manager";
   }
 }

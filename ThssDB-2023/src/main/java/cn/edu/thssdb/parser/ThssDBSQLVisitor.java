@@ -36,6 +36,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     String name = ctx.databaseName().getText();
     manager.createDatabaseIfNotExists(name);
+    manager.persist();
     return new CreateDatabasePlan(name);
   }
 
