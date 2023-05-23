@@ -3,9 +3,7 @@ package cn.edu.thssdb.schema;
 import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.utils.Global;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -24,7 +22,7 @@ public class Manager {
     currentDatabase = null;
     File managerFolder = new File(Global.DBMS_DIR + File.separator + "data");
     if (!managerFolder.exists()) managerFolder.mkdirs();
-    // this.recover();
+    this.recover();
   }
 
   public void createDatabaseIfNotExists(String databaseName) {
@@ -68,27 +66,48 @@ public class Manager {
       lock.readLock().unlock();
     }
   }
+
   public void persist() {
     try {
       FileOutputStream fos = new FileOutputStream(Manager.getManagerDataFilePath());
       OutputStreamWriter writer = new OutputStreamWriter(fos);
-      for (String databaseName : databases.keySet())
-        writer.write(databaseName + "\n");
+      for (String databaseName : databases.keySet()) writer.write(databaseName + "\n");
       writer.close();
       fos.close();
     } catch (Exception e) {
-      //throw new FileIOException(Manager.getManagerDataFilePath());
-      throw  new RuntimeException();
+      // throw new FileIOException(Manager.getManagerDataFilePath());
+      throw new RuntimeException();
     }
   }
 
+  public void recover() {
+    File managerDataFile = new File(Manager.getManagerDataFilePath());
+    if (!managerDataFile.isFile()) return;
+    try {
+      System.out.println("try to recover manager");
+      InputStreamReader reader = new InputStreamReader(new FileInputStream(managerDataFile));
+      BufferedReader bufferedReader = new BufferedReader(reader);
+      String line;
+      while ((line = bufferedReader.readLine()) != null) {
+        System.out.println("recover database" + line);
+        createDatabaseIfNotExists(line);
+
+      }
+      bufferedReader.close();
+      reader.close();
+    } catch (Exception e) {
+      //throw new FileIOException(managerDataFile.getName());
+      throw new RuntimeException();
+    }
+  }
 
   private static class ManagerHolder {
     private static final Manager INSTANCE = new Manager();
 
     private ManagerHolder() {}
   }
-  public static String getManagerDataFilePath(){
+
+  public static String getManagerDataFilePath() {
     return Global.DBMS_DIR + File.separator + "data" + File.separator + "manager";
   }
 }
