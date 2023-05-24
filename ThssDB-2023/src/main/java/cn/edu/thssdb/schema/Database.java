@@ -23,6 +23,10 @@ public class Database {
     recover();
   }
 
+  public Table getTable(String tableName) {
+    return tables.get(tableName);
+  }
+
   private void persist() {
     // TODO
     for (Table table : this.tables.values()) {
