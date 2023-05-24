@@ -20,6 +20,7 @@ package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.plan.impl.CreateTablePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.plan.impl.UseDatabasePlan;
 import cn.edu.thssdb.schema.Column;
@@ -27,7 +28,12 @@ import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
+import cn.edu.thssdb.type.ColumnType;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
@@ -71,18 +77,128 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx){
     String name = ctx.tableName().getText();
+    ArrayList<Column> columns = new ArrayList<Column>();
+
     List<SQLParser.ColumnDefContext> column_def = ctx.columnDef();
-    String constraint = ctx.tableConstraint().getText();
     int len = column_def.size();
-    for (int i = 0;i < len;i++){
-      String column = column_def.get(i).getText();
-      String[] column_spilt = column.split(" ");
+
+    String constraint = ctx.tableConstraint().getText();
+    String[] cons = constraint.split(" ");
+    String primary = "";
+    if(cons[0].toLowerCase().equals("primary")){    //判断出谁是主键
+      String key = cons[1];
+      primary = key.substring(4,key.length()-1);
     }
 
+    for (int i = 0;i < len;i++){
+      Column newcolumn = null;
+      String column = column_def.get(i).getText().toLowerCase();
+      String[] column_spilt = column.split(" ");
+      if (column_spilt.length == 2 ){
+        String attrname = column_spilt[0];
+        String type = column_spilt[1].toLowerCase();
+        if (attrname.equals(primary)){    //主键情况
+          switch(type){
+            case "int" :
+              newcolumn = new Column(attrname, ColumnType.INT,1,false,0);
+            case "long" :
+              newcolumn = new Column(attrname, ColumnType.LONG,1,false,0);
+            case "double" :
+              newcolumn = new Column(attrname, ColumnType.DOUBLE,1,false,0);
+            case "float" :
+              newcolumn = new Column(attrname, ColumnType.FLOAT,1,false,0);
+            default:
+              if (type.substring(0,6).equals("string")){
+                String max = type.substring(6,type.length()-1);
+                newcolumn = new Column(attrname, ColumnType.STRING,1,false,Integer.parseInt(max));
+              }else {
+                throw new RuntimeException("error string");
+              }
+          }
 
-    return null;
+        }{    //非主键情况
+          switch(type){
+            case "int" :
+              newcolumn = new Column(attrname, ColumnType.INT,0,false,0);
+            case "long" :
+              newcolumn = new Column(attrname, ColumnType.LONG,0,false,0);
+            case "double" :
+              new Column(attrname, ColumnType.DOUBLE,0,false,0);
+            case "float" :
+              new Column(attrname, ColumnType.FLOAT,0,false,0);
+            default:
+              if (type.substring(0,6).equals("string")){
+                String max = type.substring(6,type.length()-1);
+                newcolumn = new Column(attrname, ColumnType.STRING,0,false,Integer.parseInt(max));
+              }else {
+                throw new RuntimeException("error string");
+              }
+          }
+        }
+
+      }else {                               //判断是否有关键字约束
+        String attrname = column_spilt[0];
+        String type = column_spilt[1].toLowerCase();
+        String con = column_spilt[2].toLowerCase();
+        if (con.equals("not null")){
+          if (attrname.equals(primary)){    //主键情况
+            switch(type){
+              case "int" :
+                newcolumn = new Column(attrname, ColumnType.INT,1,false,0);
+              case "long" :
+                newcolumn = new Column(attrname, ColumnType.LONG,1,false,0);
+              case "double" :
+                newcolumn = new Column(attrname, ColumnType.DOUBLE,1,false,0);
+              case "float" :
+                newcolumn = new Column(attrname, ColumnType.FLOAT,1,false,0);
+              default:
+                if (type.substring(0,6).equals("string")){
+                  String max = type.substring(6,type.length()-1);
+                  newcolumn = new Column(attrname, ColumnType.STRING,1,false,Integer.parseInt(max));
+                }else {
+                  throw new RuntimeException("error string");
+                }
+            }
+
+          }{    //非主键情况
+            switch(type){
+              case "int" :
+                newcolumn = new Column(attrname, ColumnType.INT,0,false,0);
+              case "long" :
+                newcolumn = new Column(attrname, ColumnType.LONG,0,false,0);
+              case "double" :
+                new Column(attrname, ColumnType.DOUBLE,0,false,0);
+              case "float" :
+                new Column(attrname, ColumnType.FLOAT,0,false,0);
+              default:
+                if (type.substring(0,6).equals("string")){
+                  String max = type.substring(6,type.length()-1);
+                  newcolumn = new Column(attrname, ColumnType.STRING,0,false,Integer.parseInt(max));
+                }else {
+                  throw new RuntimeException("error string");
+                }
+            }
+          }
+        }
+
+      }
+      if (newcolumn != null) {
+        columns.add(newcolumn);
+      }
+
+    }
+    Column[] all_column = new Column[columns.size()];
+    for (int j = 0;j < columns.size() ; j++ ) {
+      all_column[j] = columns.get(j);
+    }
+    this.database.create(name, all_column);
+    this.database.quit();   //触发持久化
+
+
+    return new CreateTablePlan(name);
 
   }
+
 
 
 }
