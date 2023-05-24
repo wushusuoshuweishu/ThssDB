@@ -1,0 +1,2 @@
+name,STRING,0,false,256
+ID,INT,1,true,0

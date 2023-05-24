@@ -26,7 +26,7 @@ public class Manager {
   }
 
   public Database getCurrentDatabase() {
-    return this.currentDatabase;
+    return currentDatabase;
   }
 
   public void createDatabaseIfNotExists(String databaseName) {
