@@ -63,9 +63,7 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
-
       case DROP_DB:
-        return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SHOW_TABLE:
         System.out.println("[DEBUG] " + plan);
@@ -74,7 +72,7 @@ public class IServiceHandler implements IService.Iface {
         manager.currentDatabase.getTable(tableName).showTableInfo();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
+        return new ExecuteStatementResp(StatusUtil.success(), false);
     }
-    return null;
   }
 }

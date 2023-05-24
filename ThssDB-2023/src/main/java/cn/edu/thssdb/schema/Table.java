@@ -34,11 +34,12 @@ public class Table implements Iterable<Row> {
 
     for (int i = 0; i < this.columns.size(); i++) {
       if (this.columns.get(i).is_primary()) {
-        if (this.primaryIndex >= 0) throw new PrimaryErrorException(this.tableName);
+        if (this.primaryIndex >= 0) throw new PrimaryErrorException(this.tableName, 0);
         this.primaryIndex = i;
       }
+      System.out.println(this.primaryIndex);
     }
-    if (this.primaryIndex < 0) throw new PrimaryErrorException(this.tableName);
+    if (this.primaryIndex < 0) throw new PrimaryErrorException(this.tableName, 1);
 
     recover();
   }

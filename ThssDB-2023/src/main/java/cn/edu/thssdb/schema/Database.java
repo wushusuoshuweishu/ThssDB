@@ -32,6 +32,7 @@ public class Database {
     for (Table table : this.tables.values()) {
       String filename = table.getTableMetaPath();
       ArrayList<Column> columns = table.columns;
+      System.out.println("table_meta persist!");
       try {
         FileOutputStream fileOutputStream = new FileOutputStream(filename);
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);

@@ -19,7 +19,10 @@
 package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-import cn.edu.thssdb.plan.impl.*;
+import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
+import cn.edu.thssdb.plan.impl.CreateTablePlan;
+import cn.edu.thssdb.plan.impl.DropDatabasePlan;
+import cn.edu.thssdb.plan.impl.UseDatabasePlan;
 import cn.edu.thssdb.schema.Column;
 import cn.edu.thssdb.schema.Database;
 import cn.edu.thssdb.schema.Manager;
@@ -34,8 +37,6 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   private Manager manager;
 
-  private Database database;
-
   public ThssDBSQLVisitor() {
     this.manager = Manager.getInstance();
   }
@@ -45,6 +46,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitCreateDbStmt(SQLParser.CreateDbStmtContext ctx) {
     String name = ctx.databaseName().getText();
     manager.createDatabaseIfNotExists(name);
+    System.out.println("go to create database");
     manager.persist();
     return new CreateDatabasePlan(name);
   }
@@ -54,6 +56,7 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   @Override
   public LogicalPlan visitDropDbStmt(SQLParser.DropDbStmtContext ctx) {
     String name = ctx.databaseName().getText();
+
     manager.deleteDatabase(name);
     manager.persist();
     return new DropDatabasePlan(name);
@@ -63,46 +66,51 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitUseDbStmt(SQLParser.UseDbStmtContext ctx) {
     String name = ctx.databaseName().getText();
     manager.switchDatabase(name);
-    database = manager.getCurrentDatabase();
     return new UseDatabasePlan(name);
   }
   // 创建表
   @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
-    String name = ctx.tableName().getText();
+    System.out.println("will create table");
+
+    Database database = manager.getCurrentDatabase();
+    String name = ctx.tableName().children.get(0).toString();
+
     ArrayList<Column> columns = new ArrayList<Column>();
 
     List<SQLParser.ColumnDefContext> column_def = ctx.columnDef();
     int len = column_def.size();
 
-    String constraint = ctx.tableConstraint().getText();
-    String[] cons = constraint.split(" ");
-    String primary = "";
-    if (cons[0].toLowerCase().equals("primary")) { // 判断出谁是主键
-      String key = cons[1];
-      primary = key.substring(4, key.length() - 1);
-    }
+    String primary = ctx.tableConstraint().getChild(3).getText();
+    System.out.println(primary);
 
     for (int i = 0; i < len; i++) {
       Column newcolumn = null;
-      String column = column_def.get(i).getText().toLowerCase();
-      String[] column_spilt = column.split(" ");
-      if (column_spilt.length == 2) {
-        String attrname = column_spilt[0];
-        String type = column_spilt[1].toLowerCase();
+      SQLParser.ColumnDefContext the_column = column_def.get(i);
+      int num = the_column.getChildCount();
+
+      if (num == 2) {
+        String attrname = the_column.getChild(0).getText();
+        String type = the_column.getChild(1).getText().toLowerCase();
+        System.out.println(attrname);
+        System.out.println(type);
         if (attrname.equals(primary)) { // 主键情况
           switch (type) {
             case "int":
               newcolumn = new Column(attrname, ColumnType.INT, 1, false, 0);
+              break;
             case "long":
               newcolumn = new Column(attrname, ColumnType.LONG, 1, false, 0);
+              break;
             case "double":
               newcolumn = new Column(attrname, ColumnType.DOUBLE, 1, false, 0);
+              break;
             case "float":
               newcolumn = new Column(attrname, ColumnType.FLOAT, 1, false, 0);
+              break;
             default:
               if (type.substring(0, 6).equals("string")) {
-                String max = type.substring(6, type.length() - 1);
+                String max = type.substring(7, type.length() - 1);
                 newcolumn =
                     new Column(attrname, ColumnType.STRING, 1, false, Integer.parseInt(max));
               } else {
@@ -114,15 +122,19 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
           switch (type) {
             case "int":
               newcolumn = new Column(attrname, ColumnType.INT, 0, false, 0);
+              break;
             case "long":
               newcolumn = new Column(attrname, ColumnType.LONG, 0, false, 0);
+              break;
             case "double":
-              new Column(attrname, ColumnType.DOUBLE, 0, false, 0);
+              newcolumn = new Column(attrname, ColumnType.DOUBLE, 0, false, 0);
+              break;
             case "float":
-              new Column(attrname, ColumnType.FLOAT, 0, false, 0);
+              newcolumn = new Column(attrname, ColumnType.FLOAT, 0, false, 0);
+              break;
             default:
               if (type.substring(0, 6).equals("string")) {
-                String max = type.substring(6, type.length() - 1);
+                String max = type.substring(7, type.length() - 1);
                 newcolumn =
                     new Column(attrname, ColumnType.STRING, 0, false, Integer.parseInt(max));
               } else {
@@ -131,67 +143,77 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
           }
         }
 
-      } else { // 判断是否有关键字约束
-        String attrname = column_spilt[0];
-        String type = column_spilt[1].toLowerCase();
-        String con = column_spilt[2].toLowerCase();
-        if (con.equals("not null")) {
-          if (attrname.equals(primary)) { // 主键情况
-            switch (type) {
-              case "int":
-                newcolumn = new Column(attrname, ColumnType.INT, 1, false, 0);
-              case "long":
-                newcolumn = new Column(attrname, ColumnType.LONG, 1, false, 0);
-              case "double":
-                newcolumn = new Column(attrname, ColumnType.DOUBLE, 1, false, 0);
-              case "float":
-                newcolumn = new Column(attrname, ColumnType.FLOAT, 1, false, 0);
-              default:
-                if (type.substring(0, 6).equals("string")) {
-                  String max = type.substring(6, type.length() - 1);
-                  newcolumn =
-                      new Column(attrname, ColumnType.STRING, 1, false, Integer.parseInt(max));
-                } else {
-                  throw new RuntimeException("error string");
-                }
-            }
+      } else if (num >= 3) { // 判断是否有关键字约束
+
+        String attrname = the_column.getChild(0).getText();
+        String type = the_column.getChild(1).getText().toLowerCase();
+        System.out.println(attrname);
+        System.out.println(type + num);
+        String cons = the_column.getChild(2).getText();
+
+        if (attrname.equals(primary)) { // 主键情况
+          switch (type) {
+            case "int":
+              System.out.println("hello");
+              newcolumn = new Column(attrname, ColumnType.INT, 1, true, 0);
+              break;
+            case "long":
+              newcolumn = new Column(attrname, ColumnType.LONG, 1, true, 0);
+              break;
+            case "double":
+              newcolumn = new Column(attrname, ColumnType.DOUBLE, 1, true, 0);
+              break;
+            case "float":
+              newcolumn = new Column(attrname, ColumnType.FLOAT, 1, true, 0);
+              break;
+            default:
+              if (type.substring(0, 6).equals("string")) {
+                String max = type.substring(7, type.length() - 1);
+
+                newcolumn = new Column(attrname, ColumnType.STRING, 1, true, Integer.parseInt(max));
+              } else {
+                throw new RuntimeException("error string");
+              }
           }
-          { // 非主键情况
-            switch (type) {
-              case "int":
-                newcolumn = new Column(attrname, ColumnType.INT, 0, false, 0);
-              case "long":
-                newcolumn = new Column(attrname, ColumnType.LONG, 0, false, 0);
-              case "double":
-                new Column(attrname, ColumnType.DOUBLE, 0, false, 0);
-              case "float":
-                new Column(attrname, ColumnType.FLOAT, 0, false, 0);
-              default:
-                if (type.substring(0, 6).equals("string")) {
-                  String max = type.substring(6, type.length() - 1);
-                  newcolumn =
-                      new Column(attrname, ColumnType.STRING, 0, false, Integer.parseInt(max));
-                } else {
-                  throw new RuntimeException("error string");
-                }
-            }
+        } else { // 非主键情况
+          switch (type) {
+            case "int":
+              newcolumn = new Column(attrname, ColumnType.INT, 0, true, 0);
+              break;
+            case "long":
+              newcolumn = new Column(attrname, ColumnType.LONG, 0, true, 0);
+              break;
+            case "double":
+              newcolumn = new Column(attrname, ColumnType.DOUBLE, 0, true, 0);
+              break;
+            case "float":
+              newcolumn = new Column(attrname, ColumnType.FLOAT, 0, true, 0);
+              break;
+            default:
+              if (type.substring(0, 6).equals("string")) {
+                String max = type.substring(7, type.length() - 1);
+                newcolumn = new Column(attrname, ColumnType.STRING, 0, true, Integer.parseInt(max));
+              } else {
+                throw new RuntimeException("error string");
+              }
           }
         }
       }
-      if (newcolumn != null) {
-        columns.add(newcolumn);
-      }
+
+      columns.add(newcolumn);
     }
+
     Column[] all_column = new Column[columns.size()];
     for (int j = 0; j < columns.size(); j++) {
       all_column[j] = columns.get(j);
+      System.out.println(all_column[j]);
     }
-    this.database.create(name, all_column);
-    this.database.quit(); // 触发持久化
+    manager.getCurrentDatabase().create(name, all_column);
+    manager.getCurrentDatabase().quit(); // 触发持久化
 
     return new CreateTablePlan(name);
   }
-
+  
   @Override
   public LogicalPlan visitShowTableStmt(SQLParser.ShowTableStmtContext ctx) {
     return new ShowTablePlan(ctx.tableName().getText());
