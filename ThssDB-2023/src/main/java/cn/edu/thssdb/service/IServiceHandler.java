@@ -63,8 +63,6 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
-      case DROP_DB:
-
       case SHOW_TABLE:
         System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
