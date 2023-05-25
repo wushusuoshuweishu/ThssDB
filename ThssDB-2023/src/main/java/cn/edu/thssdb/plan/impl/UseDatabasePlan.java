@@ -10,4 +10,8 @@ public class UseDatabasePlan extends LogicalPlan {
     super(LogicalPlanType.USE_DB);
     this.database = name;
   }
+
+  public String getDatabase() {
+    return database;
+  }
 }

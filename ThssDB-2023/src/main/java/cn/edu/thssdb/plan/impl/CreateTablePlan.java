@@ -1,13 +1,19 @@
 package cn.edu.thssdb.plan.impl;
 
 import cn.edu.thssdb.plan.LogicalPlan;
+import cn.edu.thssdb.sql.SQLParser;
 
 public class CreateTablePlan extends LogicalPlan {
 
-  private String tablename;
+  SQLParser.CreateTableStmtContext ctx;
 
-  public CreateTablePlan(String name) {
+  public CreateTablePlan(SQLParser.CreateTableStmtContext ctx) {
     super(LogicalPlanType.CREATE_TABLE);
-    this.tablename = name;
+
+    this.ctx = ctx;
   }
+
+  public SQLParser.CreateTableStmtContext getCtx() {
+    return ctx;
+  };
 }

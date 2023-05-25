@@ -10,4 +10,8 @@ public class DropDatabasePlan extends LogicalPlan {
     super(LogicalPlanType.DROP_DB);
     this.databaseName = name;
   }
+
+  public String getDatabaseName() {
+    return databaseName;
+  }
 }
