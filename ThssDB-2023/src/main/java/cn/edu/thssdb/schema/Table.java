@@ -190,6 +190,12 @@ public class Table implements Iterable<Row> {
     return Boolean.TRUE;
   }
 
+  public void showTableInfo() {
+    for (int i = 0; i < this.columns.size(); i++) {
+      System.out.println(columns.get(i));
+    }
+  }
+
   private class TableIterator implements Iterator<Row> {
     private Iterator<Pair<Entry, Row>> iterator;
 
