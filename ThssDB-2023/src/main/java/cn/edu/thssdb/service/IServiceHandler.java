@@ -2,14 +2,7 @@ package cn.edu.thssdb.service;
 
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
-
-import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
-import cn.edu.thssdb.plan.impl.CreateTablePlan;
-import cn.edu.thssdb.plan.impl.DropDatabasePlan;
-import cn.edu.thssdb.plan.impl.UseDatabasePlan;
-
-import cn.edu.thssdb.plan.impl.ShowTablePlan;
-
+import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;
@@ -233,11 +226,18 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().create(ct_name, all_column);
         manager.getCurrentDatabase().quit(); // 触发持久化
 
+        return new ExecuteStatementResp(StatusUtil.success(), false);
       case SHOW_TABLE:
         System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
         String tableName = showTablePlan.getTableName();
         manager.currentDatabase.getTable(tableName).showTableInfo();
+
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case DROP_TABLE:
+        DropTablePlan dropTablePlan = (DropTablePlan) plan;
+        String d_tableName = dropTablePlan.getTableName();
+        manager.currentDatabase.drop(d_tableName);
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:

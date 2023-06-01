@@ -19,16 +19,11 @@
 package cn.edu.thssdb.parser;
 
 import cn.edu.thssdb.plan.LogicalPlan;
-
+import cn.edu.thssdb.plan.impl.*;
 import cn.edu.thssdb.plan.impl.CreateDatabasePlan;
 import cn.edu.thssdb.plan.impl.CreateTablePlan;
 import cn.edu.thssdb.plan.impl.DropDatabasePlan;
 import cn.edu.thssdb.plan.impl.UseDatabasePlan;
-
-import cn.edu.thssdb.plan.impl.*;
-import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.Database;
-import cn.edu.thssdb.schema.Manager;
 import cn.edu.thssdb.sql.SQLBaseVisitor;
 import cn.edu.thssdb.sql.SQLParser;
 
@@ -70,5 +65,8 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitShowTableStmt(SQLParser.ShowTableStmtContext ctx) {
     return new ShowTablePlan(ctx.tableName().getText());
   }
-
+  @Override
+  public LogicalPlan visitDropTableStmt(SQLParser.DropTableStmtContext ctx){
+    return new DropTablePlan(ctx.tableName().getText());
+  }
 }
