@@ -13,9 +13,7 @@ import cn.edu.thssdb.rpc.thrift.GetTimeReq;
 import cn.edu.thssdb.rpc.thrift.GetTimeResp;
 import cn.edu.thssdb.rpc.thrift.IService;
 import cn.edu.thssdb.rpc.thrift.Status;
-import cn.edu.thssdb.schema.Column;
-import cn.edu.thssdb.schema.Database;
-import cn.edu.thssdb.schema.Manager;
+import cn.edu.thssdb.schema.*;
 import cn.edu.thssdb.sql.SQLParser;
 import cn.edu.thssdb.type.ColumnType;
 import cn.edu.thssdb.utils.Global;
@@ -24,8 +22,11 @@ import org.apache.thrift.TException;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static cn.edu.thssdb.schema.Column.parseEntry;
 
 public class IServiceHandler implements IService.Iface {
 
@@ -236,9 +237,63 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case DROP_TABLE:
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
-        String d_tableName = dropTablePlan.getTableName();
-        manager.currentDatabase.drop(d_tableName);
+        String dr_tableName = dropTablePlan.getTableName();
+        manager.currentDatabase.drop(dr_tableName);
 
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case DELETE_ROW:
+        DeletePlan deletePlan = (DeletePlan) plan;
+        SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
+        String d_tableName = d_ctx.tableName().children.get(0).toString();
+
+
+        Database d_database = manager.getCurrentDatabase();
+        Table table = d_database.getTable(d_tableName);
+        ArrayList<Column> d_columns = table.columns;
+
+        Iterator<Row> rowIterator = table.iterator();
+
+        if (d_ctx.K_WHERE() == null) {
+          while(rowIterator.hasNext()){
+            Row row = rowIterator.next();
+            table.delete(row);
+          }
+        } else {
+          String attrName = d_ctx.multipleCondition().condition().expression(0).comparer().columnFullName().columnName().getText().toLowerCase();
+          String attrValue = d_ctx.multipleCondition().condition().expression(1).comparer().literalValue().getText();
+          SQLParser.ComparatorContext comparator = d_ctx.multipleCondition().condition().comparator();
+          int columnIndex = -1;
+          for (int j = 0; j < d_columns.size(); j++){       //找到属性对应的索引columnindex
+            if (attrName.equals(d_columns.get(j).getColumnName())) {
+              columnIndex = j;
+              break;
+            }
+          }
+          Entry compareValue = parseEntry(attrValue, d_columns.get(columnIndex));
+          while (rowIterator.hasNext()){
+            Row row = rowIterator.next();
+            Entry columnValue = row.getEntries().get(columnIndex);
+            if(comparator.LT() != null){
+              if(columnValue.compareTo(compareValue) < 0)
+                table.delete(row);
+            }else if(comparator.GT() != null){
+              if (columnValue.compareTo(compareValue) > 0)
+                table.delete(row);
+            }else if(comparator.LE() != null){
+              if (columnValue.compareTo(compareValue) <= 0)
+                table.delete(row);
+            }else if(comparator.GE() != null){
+              if (columnValue.compareTo(compareValue) >= 0)
+                table.delete(row);
+            }else if(comparator.EQ() != null){
+              if (columnValue.compareTo(compareValue) == 0)
+                table.delete(row);
+            }else if(comparator.NE() != null){
+              if (columnValue.compareTo(compareValue) != 0)
+                table.delete(row);
+            }
+          }
+        }
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);

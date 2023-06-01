@@ -27,6 +27,7 @@ public class Database {
     return tables.get(tableName);
   }
 
+
   private void persist() {
     // TODO
     for (Table table : this.tables.values()) {
