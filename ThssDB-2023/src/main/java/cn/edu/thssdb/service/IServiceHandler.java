@@ -246,7 +246,6 @@ public class IServiceHandler implements IService.Iface {
         SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
         String d_tableName = d_ctx.tableName().children.get(0).toString();
 
-
         Database d_database = manager.getCurrentDatabase();
         Table table = d_database.getTable(d_tableName);
         ArrayList<Column> d_columns = table.columns;
@@ -254,47 +253,106 @@ public class IServiceHandler implements IService.Iface {
         Iterator<Row> rowIterator = table.iterator();
 
         if (d_ctx.K_WHERE() == null) {
-          while(rowIterator.hasNext()){
+          while (rowIterator.hasNext()) {
             Row row = rowIterator.next();
             table.delete(row);
           }
         } else {
-          String attrName = d_ctx.multipleCondition().condition().expression(0).comparer().columnFullName().columnName().getText().toLowerCase();
-          String attrValue = d_ctx.multipleCondition().condition().expression(1).comparer().literalValue().getText();
-          SQLParser.ComparatorContext comparator = d_ctx.multipleCondition().condition().comparator();
+          String attrName =
+              d_ctx
+                  .multipleCondition()
+                  .condition()
+                  .expression(0)
+                  .comparer()
+                  .columnFullName()
+                  .columnName()
+                  .getText()
+                  .toLowerCase();
+          String attrValue =
+              d_ctx
+                  .multipleCondition()
+                  .condition()
+                  .expression(1)
+                  .comparer()
+                  .literalValue()
+                  .getText();
+          SQLParser.ComparatorContext comparator =
+              d_ctx.multipleCondition().condition().comparator();
           int columnIndex = -1;
-          for (int j = 0; j < d_columns.size(); j++){       //找到属性对应的索引columnindex
+          for (int j = 0; j < d_columns.size(); j++) { // 找到属性对应的索引columnindex
             if (attrName.equals(d_columns.get(j).getColumnName())) {
               columnIndex = j;
               break;
             }
           }
           Entry compareValue = parseEntry(attrValue, d_columns.get(columnIndex));
-          while (rowIterator.hasNext()){
+          while (rowIterator.hasNext()) {
             Row row = rowIterator.next();
             Entry columnValue = row.getEntries().get(columnIndex);
-            if(comparator.LT() != null){
-              if(columnValue.compareTo(compareValue) < 0)
-                table.delete(row);
-            }else if(comparator.GT() != null){
-              if (columnValue.compareTo(compareValue) > 0)
-                table.delete(row);
-            }else if(comparator.LE() != null){
-              if (columnValue.compareTo(compareValue) <= 0)
-                table.delete(row);
-            }else if(comparator.GE() != null){
-              if (columnValue.compareTo(compareValue) >= 0)
-                table.delete(row);
-            }else if(comparator.EQ() != null){
-              if (columnValue.compareTo(compareValue) == 0)
-                table.delete(row);
-            }else if(comparator.NE() != null){
-              if (columnValue.compareTo(compareValue) != 0)
-                table.delete(row);
+            if (comparator.LT() != null) {
+              if (columnValue.compareTo(compareValue) < 0) table.delete(row);
+            } else if (comparator.GT() != null) {
+              if (columnValue.compareTo(compareValue) > 0) table.delete(row);
+            } else if (comparator.LE() != null) {
+              if (columnValue.compareTo(compareValue) <= 0) table.delete(row);
+            } else if (comparator.GE() != null) {
+              if (columnValue.compareTo(compareValue) >= 0) table.delete(row);
+            } else if (comparator.EQ() != null) {
+              if (columnValue.compareTo(compareValue) == 0) table.delete(row);
+            } else if (comparator.NE() != null) {
+              if (columnValue.compareTo(compareValue) != 0) table.delete(row);
             }
           }
         }
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case INSERT_ROW:
+        InsertPlan insertPlan = (InsertPlan) plan;
+        SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
+        String itablename = insert_ctx.tableName().children.get(0).toString();
+        List<SQLParser.ColumnNameContext> columnName = insert_ctx.columnName();
+        List<SQLParser.ValueEntryContext> valueEntry = insert_ctx.valueEntry();
+        Database i_base = manager.getCurrentDatabase();
+        Table i_table = i_base.getTable(itablename);
+        ArrayList<Column> columnslist = i_table.columns;
+
+        if (columnName.size() == 0) {
+          for (SQLParser.ValueEntryContext value : valueEntry) {
+            if (value.literalValue().size() != columnslist.size()) {
+              throw new RuntimeException("insert ROW don't match column!");
+            }
+            ArrayList<Entry> entries = new ArrayList<>();
+
+            for (int i = 0; i < columnslist.size(); i++) {
+              entries.add(parseEntry(value.literalValue(i).getText(), columnslist.get(i)));
+            }
+            Row insert_row = new Row(entries);
+            i_table.insert(insert_row);
+          }
+        } else {
+          ArrayList<Integer> columnn_index = new ArrayList<>();
+          for (int i = 0; i < columnName.size(); i++) {
+            for (int j = 0; j < columnslist.size(); j++) {
+              if (columnName.get(i).getText().equals(columnslist.get(j).getColumnName())) {
+                columnn_index.add(j);
+                break;
+              }
+            }
+          }
+          for (SQLParser.ValueEntryContext value : valueEntry) {
+            if (value.literalValue().size() != columnslist.size()) {
+              throw new RuntimeException("insert ROW don't match column!");
+            }
+            ArrayList<Entry> entries = new ArrayList<>();
+
+            for (int i = 0; i < columnslist.size(); i++) {
+              entries.add(parseEntry(value.literalValue(i).getText(), columnslist.get(i)));
+            }
+            Row insert_row = new Row(entries);
+            i_table.insert(insert_row);
+          }
+        }
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
