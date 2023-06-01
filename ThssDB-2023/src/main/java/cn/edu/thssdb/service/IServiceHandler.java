@@ -363,6 +363,54 @@ public class IServiceHandler implements IService.Iface {
           }
         }
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case INSERT_ROW:
+        InsertPlan insertPlan = (InsertPlan) plan;
+        SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
+        String itablename = insert_ctx.tableName().children.get(0).toString();
+        List<SQLParser.ColumnNameContext> columnName = insert_ctx.columnName();
+        List<SQLParser.ValueEntryContext> valueEntry = insert_ctx.valueEntry();
+        Database i_base = manager.getCurrentDatabase();
+        Table i_table = i_base.getTable(itablename);
+        ArrayList<Column> columnslist = i_table.columns;
+
+        if (columnName.size() == 0) {
+          for (SQLParser.ValueEntryContext value : valueEntry) {
+            if (value.literalValue().size() != columnslist.size()) {
+              throw new RuntimeException("insert ROW don't match column!");
+            }
+            ArrayList<Entry> entries = new ArrayList<>();
+
+            for (int i = 0; i < columnslist.size(); i++) {
+              entries.add(parseEntry(value.literalValue(i).getText(), columnslist.get(i)));
+            }
+            Row insert_row = new Row(entries);
+            i_table.insert(insert_row);
+          }
+        } else {
+          ArrayList<Integer> columnn_index = new ArrayList<>();
+          for (int i = 0; i < columnName.size(); i++) {
+            for (int j = 0; j < columnslist.size(); j++) {
+              if (columnName.get(i).getText().equals(columnslist.get(j).getColumnName())) {
+                columnn_index.add(j);
+                break;
+              }
+            }
+          }
+          for (SQLParser.ValueEntryContext value : valueEntry) {
+            if (value.literalValue().size() != columnslist.size()) {
+              throw new RuntimeException("insert ROW don't match column!");
+            }
+            ArrayList<Entry> entries = new ArrayList<>();
+
+            for (int i = 0; i < columnslist.size(); i++) {
+              entries.add(parseEntry(value.literalValue(i).getText(), columnslist.get(i)));
+            }
+            Row insert_row = new Row(entries);
+            i_table.insert(insert_row);
+          }
+        }
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case UPDATE_COLUMN:
         System.out.println("[DEBUG] " + plan);
         UpdateColumnPlan updateColumnPlan = (UpdateColumnPlan) plan;
