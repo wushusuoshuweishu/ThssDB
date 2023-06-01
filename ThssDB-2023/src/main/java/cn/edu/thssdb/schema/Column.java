@@ -36,7 +36,10 @@ public class Column implements Comparable<Column> {
   public boolean is_primary() {
     return this.primary == 1;
   }
-  public String getColumnName(){return this.name;}
+
+  public String getColumnName() {
+    return this.name;
+  }
 
   public boolean nonNullable() {
     return this.notNull;
@@ -49,12 +52,12 @@ public class Column implements Comparable<Column> {
   public int getMaxLength() {
     return this.maxLength;
   }
-  public static Entry parseEntry(String s, Column column){
+
+  public static Entry parseEntry(String s, Column column) {
     ColumnType columnType = column.getColumnType();
     if (s.equals(Global.ENTRY_NULL)) {
-      if (column.nonNullable())
-        throw new RuntimeException("wrong null");
-      else{
+      if (column.nonNullable()) throw new RuntimeException("wrong null");
+      else {
         Entry tmp = new Entry(Global.ENTRY_NULL);
         tmp.value = null;
         return tmp;
@@ -70,9 +73,9 @@ public class Column implements Comparable<Column> {
       case DOUBLE:
         return new Entry(Double.valueOf(s));
       case STRING:
-        String sWithoutQuotes = s.substring(1,s.length()-1);
-        if (sWithoutQuotes.length() > column.getMaxLength())                     // 长度超出该列限制
-          throw new RuntimeException("length wrong");
+        String sWithoutQuotes = s.substring(1, s.length() - 1);
+        if (sWithoutQuotes.length() > column.getMaxLength()) // 长度超出该列限制
+        throw new RuntimeException("length wrong");
         return new Entry(sWithoutQuotes);
       default:
         Entry tmp = new Entry(Global.ENTRY_NULL);

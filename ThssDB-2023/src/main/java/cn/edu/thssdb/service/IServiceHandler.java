@@ -57,6 +57,60 @@ public class IServiceHandler implements IService.Iface {
     return new DisconnectResp(StatusUtil.success());
   }
 
+  public static ArrayList<Row> getRowsValidForWhere (Table table, SQLParser.ConditionContext updateCondition) {
+    ArrayList<Column> columns = table.columns;
+    Iterator<Row> rowIterator = table.iterator();
+    String attrName = null;
+    String attrValue = null;
+    int attrIndex = -1;
+    SQLParser.ComparatorContext comparator = null;
+    Entry compareValue = null;
+    ArrayList<Row>rows = new ArrayList<Row>();
+
+    if (updateCondition != null) {
+      attrName = updateCondition.expression(0).comparer().columnFullName().columnName().getText().toLowerCase();
+      attrValue = updateCondition.expression(1).comparer().literalValue().getText();
+      for (int i = 0; i < columns.size(); ++i) {
+        if (columns.get(i).getColumnName().equals(attrName)) {
+          attrIndex = i;
+        }
+      }
+      comparator = updateCondition.comparator();
+      compareValue = parseEntry(attrValue, columns.get(attrIndex));
+    }
+
+    while (rowIterator.hasNext()){
+      Row row = rowIterator.next();
+      Entry columnValue = row.getEntries().get(attrIndex);
+      boolean flag = false;
+      if(comparator == null) {
+        flag = true;
+      } else if (comparator.LT() != null) {
+        if (columnValue.compareTo(compareValue) < 0)
+          flag = true;
+      } else if(comparator.GT() != null) {
+        if (columnValue.compareTo(compareValue) > 0)
+          flag = true;
+      } else if(comparator.LE() != null) {
+        if (columnValue.compareTo(compareValue) <= 0)
+          flag = true;
+      } else if(comparator.GE() != null) {
+        if (columnValue.compareTo(compareValue) >= 0)
+          flag = true;
+      } else if(comparator.EQ() != null) {
+        if (columnValue.compareTo(compareValue) == 0)
+          flag = true;
+      } else if(comparator.NE() != null) {
+        if (columnValue.compareTo(compareValue) != 0)
+          flag = true;
+      }
+      if (flag) {
+        rows.add(row);
+      }
+    }
+    return rows;
+  }
+
   @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) throws TException {
     if (req.getSessionId() < 0) {
@@ -75,17 +129,20 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case DROP_DB:
+        System.out.println("[DEBUG] " + plan);
         DropDatabasePlan drop_plan = (DropDatabasePlan) plan;
         String drop_name = drop_plan.getDatabaseName();
         manager.deleteDatabase(drop_name);
         manager.persist();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case USE_DB:
+        System.out.println("[DEBUG] " + plan);
         UseDatabasePlan use_plan = (UseDatabasePlan) plan;
         String use_name = use_plan.getDatabase();
         manager.switchDatabase(use_name);
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case CREATE_TABLE:
+        System.out.println("[DEBUG] " + plan);
         CreateTablePlan ct_plan = (CreateTablePlan) plan;
         SQLParser.CreateTableStmtContext ctx = ct_plan.getCtx();
         Database database = manager.getCurrentDatabase();
@@ -215,7 +272,6 @@ public class IServiceHandler implements IService.Iface {
               }
             }
           }
-
           columns.add(newcolumn);
         }
 
@@ -236,16 +292,17 @@ public class IServiceHandler implements IService.Iface {
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case DROP_TABLE:
+        System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         String dr_tableName = dropTablePlan.getTableName();
         manager.currentDatabase.drop(dr_tableName);
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case DELETE_ROW:
+        System.out.println("[DEBUG] " + plan);
         DeletePlan deletePlan = (DeletePlan) plan;
         SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
         String d_tableName = d_ctx.tableName().children.get(0).toString();
-
 
         Database d_database = manager.getCurrentDatabase();
         Table table = d_database.getTable(d_tableName);
@@ -254,46 +311,85 @@ public class IServiceHandler implements IService.Iface {
         Iterator<Row> rowIterator = table.iterator();
 
         if (d_ctx.K_WHERE() == null) {
-          while(rowIterator.hasNext()){
+          while (rowIterator.hasNext()) {
             Row row = rowIterator.next();
             table.delete(row);
           }
         } else {
-          String attrName = d_ctx.multipleCondition().condition().expression(0).comparer().columnFullName().columnName().getText().toLowerCase();
-          String attrValue = d_ctx.multipleCondition().condition().expression(1).comparer().literalValue().getText();
-          SQLParser.ComparatorContext comparator = d_ctx.multipleCondition().condition().comparator();
+          String attrName =
+              d_ctx
+                  .multipleCondition()
+                  .condition()
+                  .expression(0)
+                  .comparer()
+                  .columnFullName()
+                  .columnName()
+                  .getText()
+                  .toLowerCase();
+          String attrValue =
+              d_ctx
+                  .multipleCondition()
+                  .condition()
+                  .expression(1)
+                  .comparer()
+                  .literalValue()
+                  .getText();
+          SQLParser.ComparatorContext comparator =
+              d_ctx.multipleCondition().condition().comparator();
           int columnIndex = -1;
-          for (int j = 0; j < d_columns.size(); j++){       //找到属性对应的索引columnindex
+          for (int j = 0; j < d_columns.size(); j++) { // 找到属性对应的索引columnindex
             if (attrName.equals(d_columns.get(j).getColumnName())) {
               columnIndex = j;
               break;
             }
           }
           Entry compareValue = parseEntry(attrValue, d_columns.get(columnIndex));
-          while (rowIterator.hasNext()){
+          while (rowIterator.hasNext()) {
             Row row = rowIterator.next();
             Entry columnValue = row.getEntries().get(columnIndex);
-            if(comparator.LT() != null){
-              if(columnValue.compareTo(compareValue) < 0)
-                table.delete(row);
-            }else if(comparator.GT() != null){
-              if (columnValue.compareTo(compareValue) > 0)
-                table.delete(row);
-            }else if(comparator.LE() != null){
-              if (columnValue.compareTo(compareValue) <= 0)
-                table.delete(row);
-            }else if(comparator.GE() != null){
-              if (columnValue.compareTo(compareValue) >= 0)
-                table.delete(row);
-            }else if(comparator.EQ() != null){
-              if (columnValue.compareTo(compareValue) == 0)
-                table.delete(row);
-            }else if(comparator.NE() != null){
-              if (columnValue.compareTo(compareValue) != 0)
-                table.delete(row);
+            if (comparator.LT() != null) {
+              if (columnValue.compareTo(compareValue) < 0) table.delete(row);
+            } else if (comparator.GT() != null) {
+              if (columnValue.compareTo(compareValue) > 0) table.delete(row);
+            } else if (comparator.LE() != null) {
+              if (columnValue.compareTo(compareValue) <= 0) table.delete(row);
+            } else if (comparator.GE() != null) {
+              if (columnValue.compareTo(compareValue) >= 0) table.delete(row);
+            } else if (comparator.EQ() != null) {
+              if (columnValue.compareTo(compareValue) == 0) table.delete(row);
+            } else if (comparator.NE() != null) {
+              if (columnValue.compareTo(compareValue) != 0) table.delete(row);
             }
           }
         }
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case UPDATE_COLUMN:
+        System.out.println("[DEBUG] " + plan);
+        UpdateColumnPlan updateColumnPlan = (UpdateColumnPlan) plan;
+        SQLParser.UpdateStmtContext updateStmtCTX = updateColumnPlan.getctx();
+        String updateColumnTableName = updateStmtCTX.tableName().children.get(0).toString();
+        String updateColumnColumnName = updateStmtCTX.columnName().children.get(0).toString();
+        String attrName =
+                updateStmtCTX
+                        .multipleCondition()
+                        .condition()
+                        .expression(0)
+                        .comparer()
+                        .columnFullName()
+                        .columnName()
+                        .getText()
+                        .toLowerCase();
+        String attrValue =
+                updateStmtCTX
+                        .multipleCondition()
+                        .condition()
+                        .expression(1)
+                        .comparer()
+                        .literalValue()
+                        .getText();
+        String filterComparer = updateStmtCTX.expression().comparer().literalValue().getText();
+        Database updateColumnDatabase = manager.getCurrentDatabase();
+        Table updateColumnDatabaseTable = updateColumnDatabase.getTable(updateColumnTableName);
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);
