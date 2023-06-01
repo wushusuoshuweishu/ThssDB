@@ -238,4 +238,8 @@ public class Table implements Iterable<Row> {
   public String getTableMetaPath() {
     return this.getTablePath() + Global.META_SUFFIX;
   }
+
+  public int getPrimaryIndex() {
+    return this.primaryIndex;
+  }
 }

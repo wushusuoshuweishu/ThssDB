@@ -7,7 +7,7 @@ public class UpdateColumnPlan extends LogicalPlan {
   private final SQLParser.UpdateStmtContext ctx;
 
   public UpdateColumnPlan(SQLParser.UpdateStmtContext ctx) {
-    super(LogicalPlanType.DELETE_ROW);
+    super(LogicalPlanType.UPDATE_COLUMN);
     this.ctx = ctx;
   }
 

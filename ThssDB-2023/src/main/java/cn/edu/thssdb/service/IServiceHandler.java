@@ -57,7 +57,8 @@ public class IServiceHandler implements IService.Iface {
     return new DisconnectResp(StatusUtil.success());
   }
 
-  public static ArrayList<Row> getRowsValidForWhere (Table table, SQLParser.ConditionContext updateCondition) {
+  public static ArrayList<Row> getRowsValidForWhere(
+      Table table, SQLParser.ConditionContext updateCondition) {
     ArrayList<Column> columns = table.columns;
     Iterator<Row> rowIterator = table.iterator();
     String attrName = null;
@@ -65,13 +66,21 @@ public class IServiceHandler implements IService.Iface {
     int attrIndex = -1;
     SQLParser.ComparatorContext comparator = null;
     Entry compareValue = null;
-    ArrayList<Row>rows = new ArrayList<Row>();
+    ArrayList<Row> rows = new ArrayList<Row>();
 
     if (updateCondition != null) {
-      attrName = updateCondition.expression(0).comparer().columnFullName().columnName().getText().toLowerCase();
+      attrName =
+          updateCondition
+              .expression(0)
+              .comparer()
+              .columnFullName()
+              .columnName()
+              .getText()
+              .toLowerCase();
       attrValue = updateCondition.expression(1).comparer().literalValue().getText();
+      System.out.println(attrValue + attrName);
       for (int i = 0; i < columns.size(); ++i) {
-        if (columns.get(i).getColumnName().equals(attrName)) {
+        if (columns.get(i).getColumnName().toLowerCase().equals(attrName)) {
           attrIndex = i;
         }
       }
@@ -79,30 +88,24 @@ public class IServiceHandler implements IService.Iface {
       compareValue = parseEntry(attrValue, columns.get(attrIndex));
     }
 
-    while (rowIterator.hasNext()){
+    while (rowIterator.hasNext()) {
       Row row = rowIterator.next();
       Entry columnValue = row.getEntries().get(attrIndex);
       boolean flag = false;
-      if(comparator == null) {
+      if (comparator == null) {
         flag = true;
       } else if (comparator.LT() != null) {
-        if (columnValue.compareTo(compareValue) < 0)
-          flag = true;
-      } else if(comparator.GT() != null) {
-        if (columnValue.compareTo(compareValue) > 0)
-          flag = true;
-      } else if(comparator.LE() != null) {
-        if (columnValue.compareTo(compareValue) <= 0)
-          flag = true;
-      } else if(comparator.GE() != null) {
-        if (columnValue.compareTo(compareValue) >= 0)
-          flag = true;
-      } else if(comparator.EQ() != null) {
-        if (columnValue.compareTo(compareValue) == 0)
-          flag = true;
-      } else if(comparator.NE() != null) {
-        if (columnValue.compareTo(compareValue) != 0)
-          flag = true;
+        if (columnValue.compareTo(compareValue) < 0) flag = true;
+      } else if (comparator.GT() != null) {
+        if (columnValue.compareTo(compareValue) > 0) flag = true;
+      } else if (comparator.LE() != null) {
+        if (columnValue.compareTo(compareValue) <= 0) flag = true;
+      } else if (comparator.GE() != null) {
+        if (columnValue.compareTo(compareValue) >= 0) flag = true;
+      } else if (comparator.EQ() != null) {
+        if (columnValue.compareTo(compareValue) == 0) flag = true;
+      } else if (comparator.NE() != null) {
+        if (columnValue.compareTo(compareValue) != 0) flag = true;
       }
       if (flag) {
         rows.add(row);
@@ -418,26 +421,43 @@ public class IServiceHandler implements IService.Iface {
         String updateColumnTableName = updateStmtCTX.tableName().children.get(0).toString();
         String updateColumnColumnName = updateStmtCTX.columnName().children.get(0).toString();
         String attrName =
-                updateStmtCTX
-                        .multipleCondition()
-                        .condition()
-                        .expression(0)
-                        .comparer()
-                        .columnFullName()
-                        .columnName()
-                        .getText()
-                        .toLowerCase();
+            updateStmtCTX
+                .multipleCondition()
+                .condition()
+                .expression(0)
+                .comparer()
+                .columnFullName()
+                .columnName()
+                .getText()
+                .toLowerCase();
         String attrValue =
-                updateStmtCTX
-                        .multipleCondition()
-                        .condition()
-                        .expression(1)
-                        .comparer()
-                        .literalValue()
-                        .getText();
+            updateStmtCTX
+                .multipleCondition()
+                .condition()
+                .expression(1)
+                .comparer()
+                .literalValue()
+                .getText();
         String filterComparer = updateStmtCTX.expression().comparer().literalValue().getText();
         Database updateColumnDatabase = manager.getCurrentDatabase();
         Table updateColumnDatabaseTable = updateColumnDatabase.getTable(updateColumnTableName);
+        ArrayList<Row> updateRows =
+            getRowsValidForWhere(
+                updateColumnDatabaseTable, updateStmtCTX.multipleCondition().condition());
+        for (Row row : updateRows) {
+          ArrayList<Entry> rowEntries = new ArrayList<Entry>(row.getEntries());
+          int attrIndex = -1;
+          for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
+            if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(attrName)) {
+              attrIndex = i;
+            }
+          }
+          rowEntries.set(
+              attrIndex, parseEntry(attrValue, updateColumnDatabaseTable.columns.get(attrIndex)));
+          updateColumnDatabaseTable.update(
+              row.getEntries().get(updateColumnDatabaseTable.getPrimaryIndex()),
+              new Row(rowEntries));
+        }
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);
