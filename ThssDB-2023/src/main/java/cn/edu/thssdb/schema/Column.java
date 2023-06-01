@@ -40,6 +40,7 @@ public class Column implements Comparable<Column> {
   public String getColumnName() {
     return this.name;
   }
+  public int getPrimary(){return this.primary;}
 
   public boolean nonNullable() {
     return this.notNull;
