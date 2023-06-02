@@ -150,7 +150,7 @@ public class Database {
     return this.getDatabasePath() + File.separator + "tables";
   }
 
-  public String getDatabaseLogFilePath(){
+  public String getDatabaseLogFilePath() {
     return this.getDatabasePath() + File.separator + "log";
   }
 }

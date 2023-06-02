@@ -191,10 +191,13 @@ public class Table implements Iterable<Row> {
     return Boolean.TRUE;
   }
 
-  public void showTableInfo() {
+  public ArrayList<String> showTableInfo() {
+    ArrayList<String> res = new ArrayList<>();
     for (int i = 0; i < this.columns.size(); i++) {
       System.out.println(columns.get(i));
+      res.add(columns.get(i).toString() + '\n');
     }
+    return res;
   }
 
   private class TableIterator implements Iterator<Row> {

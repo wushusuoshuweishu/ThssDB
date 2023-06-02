@@ -117,9 +117,9 @@ public class Manager {
       String line;
       while ((line = bufferedReader.readLine()) != null) {
         System.out.println("[INFO] reading " + line);
-        long session = Long.parseLong (line.split("@")[0]);
+        long session = Long.parseLong(line.split("@")[0]);
         String statement = line.split("@")[1];
-        //sqlHandler.evaluate(statement, session, true);
+        // sqlHandler.evaluate(statement, session, true);
       }
       bufferedReader.close();
       reader.close();
