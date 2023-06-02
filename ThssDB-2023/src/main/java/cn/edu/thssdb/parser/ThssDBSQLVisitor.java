@@ -84,4 +84,8 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   public LogicalPlan visitUpdateStmt(SQLParser.UpdateStmtContext ctx) {
     return new UpdateColumnPlan(ctx);
   }
+
+  public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) {
+    return new SelectPlan(ctx);
+  }
 }

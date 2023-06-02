@@ -37,7 +37,6 @@ public class Table implements Iterable<Row> {
         if (this.primaryIndex >= 0) throw new PrimaryErrorException(this.tableName, 0);
         this.primaryIndex = i;
       }
-      System.out.println(this.primaryIndex);
     }
     if (this.primaryIndex < 0) throw new PrimaryErrorException(this.tableName, 1);
 
