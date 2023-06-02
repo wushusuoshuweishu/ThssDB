@@ -123,7 +123,7 @@ public class Database {
         bufferedReader.close();
         reader.close();
         Table table = new Table(this.name, tableName, columnList.toArray(new Column[0]));
-        System.out.println(table.toString());
+
         for (Row row : table) System.out.println(row.toString());
         this.tables.put(tableName, table);
       } catch (Exception ignored) {

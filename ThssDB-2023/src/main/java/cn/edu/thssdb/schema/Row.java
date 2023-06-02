@@ -25,6 +25,11 @@ public class Row implements Serializable {
     return entries;
   }
 
+  public Row(Row row) {
+    this.entries = new ArrayList<>();
+    for (Entry entry : row.entries) this.entries.add(new Entry(entry));
+  }
+
   public void appendEntries(ArrayList<Entry> entries) {
     this.entries.addAll(entries);
   }

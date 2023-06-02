@@ -3,6 +3,7 @@ package cn.edu.thssdb.service;
 import cn.edu.thssdb.plan.LogicalGenerator;
 import cn.edu.thssdb.plan.LogicalPlan;
 import cn.edu.thssdb.plan.impl.*;
+import cn.edu.thssdb.query.QueryTable;
 import cn.edu.thssdb.rpc.thrift.ConnectReq;
 import cn.edu.thssdb.rpc.thrift.ConnectResp;
 import cn.edu.thssdb.rpc.thrift.DisconnectReq;
@@ -157,7 +158,6 @@ public class IServiceHandler implements IService.Iface {
         int len = column_def.size();
 
         String primary = ctx.tableConstraint().getChild(3).getText();
-        System.out.println(primary);
 
         for (int i = 0; i < len; i++) {
           Column newcolumn = null;
@@ -167,8 +167,7 @@ public class IServiceHandler implements IService.Iface {
           if (num == 2) {
             String attrname = the_column.getChild(0).getText();
             String type = the_column.getChild(1).getText().toLowerCase();
-            System.out.println(attrname);
-            System.out.println(type);
+
             if (attrname.equals(primary)) { // 主键情况
               switch (type) {
                 case "int":
@@ -221,14 +220,12 @@ public class IServiceHandler implements IService.Iface {
 
             String attrname = the_column.getChild(0).getText();
             String type = the_column.getChild(1).getText().toLowerCase();
-            System.out.println(attrname);
-            System.out.println(type + num);
+
             String cons = the_column.getChild(2).getText();
 
             if (attrname.equals(primary)) { // 主键情况
               switch (type) {
                 case "int":
-                  System.out.println("hello");
                   newcolumn = new Column(attrname, ColumnType.INT, 1, true, 0);
                   break;
                 case "long":
@@ -459,6 +456,28 @@ public class IServiceHandler implements IService.Iface {
               new Row(rowEntries));
         }
         return new ExecuteStatementResp(StatusUtil.success(), false);
+      case SELECT_TABLE:
+        SelectPlan select_plan = (SelectPlan) plan;
+        SQLParser.SelectStmtContext s_ctx = select_plan.getCtx();
+
+        SQLParser.TableQueryContext query = s_ctx.tableQuery().get(0);
+
+        QueryTable queryTable = null;
+        QueryTable x_table = null;
+        QueryTable y_table = null;
+        if (query.getChildCount() == 1) { // 单个table   success!
+          queryTable =
+              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
+        } else {
+          System.out.println(query.tableName(0).getText() + "  \n" + query.tableName(1).getText());
+          x_table =
+              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
+          y_table =
+              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(1).getText()));
+
+          queryTable = new QueryTable(x_table, y_table, null);
+        }
+
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
