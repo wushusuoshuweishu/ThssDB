@@ -11,18 +11,24 @@ public class QueryTable implements Iterator<Row> {
 
   public ArrayList<Column> columns;
   public ArrayList<Row> rows;
+
   QueryTable(Table table) {
     // TODO    单个table的选择
     this.columns = new ArrayList<>();
-    for (Column the_column : table.columns){
-      Column newcolumn = new Column(table.tableName + '.' + the_column.getColumnName(),
-              the_column.getColumnType(), the_column.getPrimary(), the_column.nonNullable(), the_column.getMaxLength());
+    for (Column the_column : table.columns) {
+      Column newcolumn =
+          new Column(
+              table.tableName + '.' + the_column.getColumnName(),
+              the_column.getColumnType(),
+              the_column.getPrimary(),
+              the_column.nonNullable(),
+              the_column.getMaxLength());
       this.columns.add(newcolumn);
     }
     Iterator<Row> rowIterator = table.iterator();
 
-    while (rowIterator.hasNext()){
-      Row the_row =rowIterator.next();
+    while (rowIterator.hasNext()) {
+      Row the_row = rowIterator.next();
       this.rows.add(the_row);
     }
   }
