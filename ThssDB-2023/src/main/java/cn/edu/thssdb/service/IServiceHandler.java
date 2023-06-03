@@ -385,6 +385,7 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case INSERT_ROW:
+        System.out.println("[DEBUG] " + plan);
         InsertPlan insertPlan = (InsertPlan) plan;
         SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
         String itablename = insert_ctx.tableName().children.get(0).toString().toLowerCase();
@@ -483,6 +484,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SELECT_TABLE:
+        System.out.println("[DEBUG] " + plan);
         SelectPlan select_plan = (SelectPlan) plan;
         SQLParser.SelectStmtContext s_ctx = select_plan.getCtx();
 
