@@ -149,4 +149,8 @@ public class Database {
   public String getDatabaseTableFolderPath() {
     return this.getDatabasePath() + File.separator + "tables";
   }
+
+  public String getDatabaseLogFilePath() {
+    return this.getDatabasePath() + File.separator + "log";
+  }
 }

@@ -95,11 +95,35 @@ public class Manager {
       while ((line = bufferedReader.readLine()) != null) {
         System.out.println("recover database" + line);
         createDatabaseIfNotExists(line);
+        readLog(line);
       }
       bufferedReader.close();
       reader.close();
     } catch (Exception e) {
       // throw new FileIOException(managerDataFile.getName());
+      throw new RuntimeException();
+    }
+  }
+
+  public void readLog(String databaseName) {
+    String logFilename = this.databases.get(databaseName).getDatabaseLogFilePath();
+    File logFile = new File(logFilename);
+    if (!logFile.isFile()) return;
+    try {
+      currentDatabase = databases.get(databaseName);
+      System.out.println("try to recover " + databaseName + " log");
+      InputStreamReader reader = new InputStreamReader(new FileInputStream(logFile));
+      BufferedReader bufferedReader = new BufferedReader(reader);
+      String line;
+      while ((line = bufferedReader.readLine()) != null) {
+        System.out.println("[INFO] reading " + line);
+        long session = Long.parseLong(line.split("@")[0]);
+        String statement = line.split("@")[1];
+        // sqlHandler.evaluate(statement, session, true);
+      }
+      bufferedReader.close();
+      reader.close();
+    } catch (Exception e) {
       throw new RuntimeException();
     }
   }

@@ -295,9 +295,12 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
         String tableName = showTablePlan.getTableName();
-        manager.currentDatabase.getTable(tableName).showTableInfo();
-
-        return new ExecuteStatementResp(StatusUtil.success(), false);
+        ArrayList<String> showTableInfoResult =
+            manager.currentDatabase.getTable(tableName).showTableInfo();
+        ExecuteStatementResp showTableResp = new ExecuteStatementResp(StatusUtil.success(), true);
+        showTableResp.columnsList = showTableInfoResult;
+        showTableResp.rowList = new ArrayList<>();
+        return showTableResp;
       case DROP_TABLE:
         System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
