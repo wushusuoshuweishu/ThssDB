@@ -147,12 +147,14 @@ public class IServiceHandler implements IService.Iface {
         manager.deleteDatabase(drop_name);
         manager.persist();
         return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case USE_DB:
         System.out.println("[DEBUG] " + plan);
         UseDatabasePlan use_plan = (UseDatabasePlan) plan;
         String use_name = use_plan.getDatabase();
         manager.switchDatabase(use_name);
         return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case CREATE_TABLE:
         System.out.println("[DEBUG] " + plan);
         CreateTablePlan ct_plan = (CreateTablePlan) plan;
@@ -291,6 +293,7 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().quit(); // 触发持久化
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case SHOW_TABLE:
         System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
@@ -301,6 +304,7 @@ public class IServiceHandler implements IService.Iface {
         showTableResp.columnsList = showTableInfoResult;
         showTableResp.rowList = new ArrayList<>();
         return showTableResp;
+
       case DROP_TABLE:
         System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
@@ -309,6 +313,7 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().quit();
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case DELETE_ROW:
         System.out.println("[DEBUG] " + plan);
         DeletePlan deletePlan = (DeletePlan) plan;
@@ -472,6 +477,7 @@ public class IServiceHandler implements IService.Iface {
         }
         manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
+
       case SELECT_TABLE:
         SelectPlan select_plan = (SelectPlan) plan;
         SQLParser.SelectStmtContext s_ctx = select_plan.getCtx();

@@ -65,8 +65,7 @@ public class Database {
       Table table = this.tables.get(name);
       String filename = table.getTableMetaPath();
       File file = new File(filename);
-      if (file.isFile() && !file.delete())
-        throw new RuntimeException();
+      if (file.isFile() && !file.delete()) throw new RuntimeException();
       table.dropTable();
       this.tables.remove(name);
     } finally {
@@ -111,8 +110,7 @@ public class Database {
       try {
         String fileName = file.getName();
         String tableName = fileName.substring(0, fileName.length() - Global.META_SUFFIX.length());
-        if (this.tables.containsKey(tableName))
-          throw new RuntimeException();
+        if (this.tables.containsKey(tableName)) throw new RuntimeException();
 
         ArrayList<Column> columnList = new ArrayList<>();
         InputStreamReader reader = new InputStreamReader(new FileInputStream(file));
