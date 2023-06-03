@@ -28,7 +28,7 @@ public class Table implements Iterable<Row> {
     this.lock = new ReentrantReadWriteLock();
     this.databaseName = databaseName;
     this.tableName = tableName;
-    this.columns = new ArrayList<>(Arrays.asList(columns)); // 属性表
+    this.columns = new ArrayList<>(Arrays.asList(columns));
     this.index = new BPlusTree<>();
     this.primaryIndex = -1;
 
@@ -81,17 +81,17 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  public void update(Entry primaryCell, Row newRow) {
+  public void update(Entry primaryEntry, Row newRow) {
     // TODO
     try {
       this.lock.writeLock().lock();
       if (!this.isRowValid(newRow)) throw new RuntimeException();
-      Entry newPrimaryValue = newRow.getEntries().get(this.primaryIndex);
-      if (!primaryCell.equals(newPrimaryValue)
+      Entry newEntryValue = newRow.getEntries().get(this.primaryIndex);
+      if (!primaryEntry.equals(newEntryValue)
           && this.index.contains(newRow.getEntries().get(this.primaryIndex)))
         throw new DuplicateKeyException();
-      this.index.remove(primaryCell);
-      this.index.put(newPrimaryValue, newRow);
+      this.index.remove(primaryEntry);
+      this.index.put(newEntryValue, newRow);
     } finally {
       this.lock.writeLock().unlock();
     }
@@ -102,11 +102,9 @@ public class Table implements Iterable<Row> {
     try {
       File tableFolder = new File(this.getTableFolderPath());
       if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory())
-        // throw new FileIOException(this.getTableFolderPath() + " on serializing table in folder");
         throw new RuntimeException();
       File tableFile = new File(this.getTablePath());
       if (!tableFile.exists() ? !tableFile.createNewFile() : !tableFile.isFile())
-        // throw new FileIOException(this.getTablePath() + " on serializing table to file");
         throw new RuntimeException();
       FileOutputStream fileOutputStream = new FileOutputStream(this.getTablePath());
       ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
@@ -114,7 +112,6 @@ public class Table implements Iterable<Row> {
       objectOutputStream.close();
       fileOutputStream.close();
     } catch (IOException e) {
-      // throw new FileIOException(this.getTablePath() + " on serializing");
       throw new RuntimeException();
     }
   }
@@ -123,9 +120,9 @@ public class Table implements Iterable<Row> {
     // TODO
     try {
       File tableFolder = new File(this.getTableFolderPath());
-      if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory())
-        // throw new FileIOException(this.getTableFolderPath() + " when deserialize");
+      if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory()) {
         throw new RuntimeException();
+      }
       File tableFile = new File(this.getTablePath());
       if (!tableFile.exists()) return new ArrayList<>();
       FileInputStream fileInputStream = new FileInputStream(this.getTablePath());
@@ -139,12 +136,7 @@ public class Table implements Iterable<Row> {
       objectInputStream.close();
       fileInputStream.close();
       return rowsOnDisk;
-    } catch (IOException e) {
-      // throw new FileIOException(this.getTablePath() + " when deserialize");
-      throw new RuntimeException();
-    } catch (ClassNotFoundException e) {
-      // throw new FileIOException(this.getTablePath() + " when deserialize(serialized object cannot
-      // be found)");
+    } catch (IOException | ClassNotFoundException e) {
       throw new RuntimeException();
     }
   }
@@ -158,17 +150,14 @@ public class Table implements Iterable<Row> {
     }
   }
 
-  public void dropTable() { // remove table data file
+  public void dropTable() {
     try {
       this.lock.writeLock().lock();
       File tableFolder = new File(this.getTableFolderPath());
       if (!tableFolder.exists() ? !tableFolder.mkdirs() : !tableFolder.isDirectory())
-        // throw new FileIOException(this.getTableFolderPath() + " when dropTable");
         throw new RuntimeException();
       File tableFile = new File(this.getTablePath());
-      if (tableFile.exists() && !tableFile.delete())
-        // throw new FileIOException(this.getTablePath() + " when dropTable");
-        throw new RuntimeException();
+      if (tableFile.exists() && !tableFile.delete()) throw new RuntimeException();
     } finally {
       this.lock.writeLock().unlock();
     }
@@ -193,9 +182,8 @@ public class Table implements Iterable<Row> {
 
   public ArrayList<String> showTableInfo() {
     ArrayList<String> res = new ArrayList<>();
-    for (int i = 0; i < this.columns.size(); i++) {
-      System.out.println(columns.get(i));
-      res.add(columns.get(i).toString() + '\n');
+    for (Column column : this.columns) {
+      res.add(column.toString() + '\n');
     }
     return res;
   }
@@ -232,11 +220,11 @@ public class Table implements Iterable<Row> {
         + File.separator
         + "tables";
   }
-  // table的data文件路径
+
   public String getTablePath() {
     return this.getTableFolderPath() + File.separator + this.tableName;
   }
-  // table中元数据路径
+
   public String getTableMetaPath() {
     return this.getTablePath() + Global.META_SUFFIX;
   }

@@ -78,8 +78,8 @@ public class Column implements Comparable<Column> {
         return new Entry(Double.valueOf(s));
       case STRING:
         String sWithoutQuotes = s.substring(1, s.length() - 1);
-        if (sWithoutQuotes.length() > column.getMaxLength()) // 长度超出该列限制
-        throw new RuntimeException("length wrong");
+        if (sWithoutQuotes.length() > column.getMaxLength())
+          throw new RuntimeException("length wrong");
         return new Entry(sWithoutQuotes);
       default:
         Entry tmp = new Entry(Global.ENTRY_NULL);

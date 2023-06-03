@@ -53,7 +53,7 @@ public class Manager {
       lock.writeLock().lock();
       if (!databases.containsKey(databaseName)) throw new DatabaseNotExistException(databaseName);
       Database database = databases.get(databaseName);
-      // database.dropDatabase();
+      database.dropDatabase();
       databases.remove(databaseName);
     } finally {
       lock.writeLock().unlock();
@@ -79,7 +79,6 @@ public class Manager {
       writer.close();
       fos.close();
     } catch (Exception e) {
-      // throw new FileIOException(Manager.getManagerDataFilePath());
       throw new RuntimeException();
     }
   }
@@ -93,14 +92,13 @@ public class Manager {
       BufferedReader bufferedReader = new BufferedReader(reader);
       String line;
       while ((line = bufferedReader.readLine()) != null) {
-        System.out.println("recover database" + line);
+        System.out.println("recover database " + line);
         createDatabaseIfNotExists(line);
         readLog(line);
       }
       bufferedReader.close();
       reader.close();
     } catch (Exception e) {
-      // throw new FileIOException(managerDataFile.getName());
       throw new RuntimeException();
     }
   }
