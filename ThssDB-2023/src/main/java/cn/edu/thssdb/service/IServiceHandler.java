@@ -167,7 +167,7 @@ public class IServiceHandler implements IService.Iface {
         List<SQLParser.ColumnDefContext> column_def = ctx.columnDef();
         int len = column_def.size();
 
-        String primary = ctx.tableConstraint().getChild(3).getText();
+        String primary = ctx.tableConstraint().getChild(3).getText().toLowerCase();
 
         for (int i = 0; i < len; i++) {
           Column newcolumn = null;
@@ -175,7 +175,7 @@ public class IServiceHandler implements IService.Iface {
           int num = the_column.getChildCount();
 
           if (num == 2) {
-            String attrname = the_column.getChild(0).getText();
+            String attrname = the_column.getChild(0).getText().toLowerCase();
             String type = the_column.getChild(1).getText().toLowerCase();
 
             if (attrname.equals(primary)) { // 主键情况
@@ -228,7 +228,7 @@ public class IServiceHandler implements IService.Iface {
 
           } else if (num >= 3) { // 判断是否有关键字约束
 
-            String attrname = the_column.getChild(0).getText();
+            String attrname = the_column.getChild(0).getText().toLowerCase();
             String type = the_column.getChild(1).getText().toLowerCase();
 
             String cons = the_column.getChild(2).getText();
@@ -308,7 +308,7 @@ public class IServiceHandler implements IService.Iface {
       case DROP_TABLE:
         System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
-        String dr_tableName = dropTablePlan.getTableName();
+        String dr_tableName = dropTablePlan.getTableName().toLowerCase();
         manager.currentDatabase.drop(dr_tableName);
         manager.getCurrentDatabase().quit();
 
@@ -318,7 +318,7 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         DeletePlan deletePlan = (DeletePlan) plan;
         SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
-        String d_tableName = d_ctx.tableName().children.get(0).toString();
+        String d_tableName = d_ctx.tableName().children.get(0).toString().toLowerCase();
 
         Database d_database = manager.getCurrentDatabase();
         Table table = d_database.getTable(d_tableName);
@@ -383,7 +383,7 @@ public class IServiceHandler implements IService.Iface {
       case INSERT_ROW:
         InsertPlan insertPlan = (InsertPlan) plan;
         SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
-        String itablename = insert_ctx.tableName().children.get(0).toString();
+        String itablename = insert_ctx.tableName().children.get(0).toString().toLowerCase();
         List<SQLParser.ColumnNameContext> columnName = insert_ctx.columnName();
         List<SQLParser.ValueEntryContext> valueEntry = insert_ctx.valueEntry();
         Database i_base = manager.getCurrentDatabase();
@@ -489,13 +489,22 @@ public class IServiceHandler implements IService.Iface {
         QueryTable y_table = null;
         if (query.getChildCount() == 1) { // 单个table   success!
           queryTable =
-              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
+              new QueryTable(
+                  manager
+                      .getCurrentDatabase()
+                      .getTable(query.tableName(0).getText().toLowerCase()));
         } else {
 
           x_table =
-              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
+              new QueryTable(
+                  manager
+                      .getCurrentDatabase()
+                      .getTable(query.tableName(0).getText().toLowerCase()));
           y_table =
-              new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(1).getText()));
+              new QueryTable(
+                  manager
+                      .getCurrentDatabase()
+                      .getTable(query.tableName(1).getText().toLowerCase()));
 
           SQLParser.ConditionContext joincondition =
               s_ctx.tableQuery().get(0).multipleCondition().condition();
