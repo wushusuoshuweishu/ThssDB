@@ -59,27 +59,34 @@ public class IServiceHandler implements IService.Iface {
   }
 
   public static ArrayList<Row> getRowsValidForWhere(
-      Table table, SQLParser.ConditionContext updateCondition) {
-    ArrayList<Column> columns = table.columns;
-    Iterator<Row> rowIterator = table.iterator();
+      ArrayList<Column> columns,
+      Iterator<Row> rowIterator,
+      SQLParser.ConditionContext updateCondition) {
     String attrName = null;
     String attrValue = null;
-    int attrIndex = -1;
+    int attrIndex = 0;
     SQLParser.ComparatorContext comparator = null;
     Entry compareValue = null;
     ArrayList<Row> rows = new ArrayList<Row>();
 
     if (updateCondition != null) {
-      attrName =
-          updateCondition
-              .expression(0)
-              .comparer()
-              .columnFullName()
-              .columnName()
-              .getText()
-              .toLowerCase();
+      if (updateCondition.expression(0).comparer().columnFullName().getChildCount() == 1) {
+        attrName =
+            updateCondition
+                .expression(0)
+                .comparer()
+                .columnFullName()
+                .columnName()
+                .getText()
+                .toLowerCase();
+      } else {
+        attrName =
+            updateCondition.expression(0).comparer().columnFullName().getText().toLowerCase();
+      }
+
       attrValue = updateCondition.expression(1).comparer().literalValue().getText();
-      System.out.println(attrValue + attrName);
+
+      attrIndex = -1;
       for (int i = 0; i < columns.size(); ++i) {
         if (columns.get(i).getColumnName().toLowerCase().equals(attrName)) {
           attrIndex = i;
@@ -92,6 +99,7 @@ public class IServiceHandler implements IService.Iface {
     while (rowIterator.hasNext()) {
       Row row = rowIterator.next();
       Entry columnValue = row.getEntries().get(attrIndex);
+
       boolean flag = false;
       if (comparator == null) {
         flag = true;
@@ -278,7 +286,6 @@ public class IServiceHandler implements IService.Iface {
         Column[] all_column = new Column[columns.size()];
         for (int j = 0; j < columns.size(); j++) {
           all_column[j] = columns.get(j);
-          System.out.println(all_column[j]);
         }
         manager.getCurrentDatabase().create(ct_name, all_column);
         manager.getCurrentDatabase().quit(); // 触发持久化
@@ -296,6 +303,7 @@ public class IServiceHandler implements IService.Iface {
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         String dr_tableName = dropTablePlan.getTableName();
         manager.currentDatabase.drop(dr_tableName);
+        manager.getCurrentDatabase().quit();
 
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case DELETE_ROW:
@@ -362,6 +370,7 @@ public class IServiceHandler implements IService.Iface {
             }
           }
         }
+        manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case INSERT_ROW:
         InsertPlan insertPlan = (InsertPlan) plan;
@@ -409,6 +418,7 @@ public class IServiceHandler implements IService.Iface {
             i_table.insert(insert_row);
           }
         }
+        manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case UPDATE_COLUMN:
@@ -440,7 +450,9 @@ public class IServiceHandler implements IService.Iface {
         Table updateColumnDatabaseTable = updateColumnDatabase.getTable(updateColumnTableName);
         ArrayList<Row> updateRows =
             getRowsValidForWhere(
-                updateColumnDatabaseTable, updateStmtCTX.multipleCondition().condition());
+                updateColumnDatabaseTable.columns,
+                updateColumnDatabaseTable.iterator(),
+                updateStmtCTX.multipleCondition().condition());
         for (Row row : updateRows) {
           ArrayList<Entry> rowEntries = new ArrayList<Entry>(row.getEntries());
           int attrIndex = -1;
@@ -455,6 +467,7 @@ public class IServiceHandler implements IService.Iface {
               row.getEntries().get(updateColumnDatabaseTable.getPrimaryIndex()),
               new Row(rowEntries));
         }
+        manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case SELECT_TABLE:
         SelectPlan select_plan = (SelectPlan) plan;
@@ -469,14 +482,62 @@ public class IServiceHandler implements IService.Iface {
           queryTable =
               new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
         } else {
-          System.out.println(query.tableName(0).getText() + "  \n" + query.tableName(1).getText());
+
           x_table =
               new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(0).getText()));
           y_table =
               new QueryTable(manager.getCurrentDatabase().getTable(query.tableName(1).getText()));
 
-          queryTable = new QueryTable(x_table, y_table, null);
+          SQLParser.ConditionContext joincondition =
+              s_ctx.tableQuery().get(0).multipleCondition().condition();
+          queryTable = new QueryTable(x_table, y_table, joincondition);
         }
+        // 对where中的条件的
+        if (s_ctx.K_WHERE() != null) {
+          SQLParser.ConditionContext selectCondition = s_ctx.multipleCondition().condition();
+
+          ArrayList<Row> newRows =
+              getRowsValidForWhere(queryTable.columns, queryTable.rows.iterator(), selectCondition);
+
+          queryTable.rows = newRows;
+        }
+        // 对select进行选择
+
+        List<SQLParser.ResultColumnContext> resultColumn = s_ctx.resultColumn();
+        ArrayList<Integer> finalIndexs = new ArrayList<>();
+        ArrayList<String> finalNames = new ArrayList<>();
+        for (SQLParser.ResultColumnContext columnContext : resultColumn) {
+          String s_columnName = columnContext.columnFullName().getText().toLowerCase();
+          finalNames.add(s_columnName);
+          int index = -1;
+          for (int i = 0; i < queryTable.columns.size(); i++) {
+            if (queryTable.columns.get(i).getColumnName().equals(s_columnName)) {
+              index = i;
+            }
+          }
+          finalIndexs.add(index);
+        }
+        ArrayList<Row> finalRows = new ArrayList<>();
+        for (Row the_row : queryTable.rows) {
+          ArrayList<Entry> finalRowEntry = new ArrayList<>();
+          for (int index : finalIndexs) {
+            finalRowEntry.add(the_row.getEntries().get(index));
+          }
+          finalRows.add(new Row(finalRowEntry));
+        }
+
+        List<List<String>> finalStr = new ArrayList<>();
+        for (Row row : finalRows) {
+          List<String> rowstr = new ArrayList<>();
+          for (Entry entry : row.getEntries()) {
+            rowstr.add(entry.toString());
+          }
+          finalStr.add(rowstr);
+        }
+        ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
+        resp.rowList = finalStr;
+        resp.columnsList = finalNames;
+        return resp;
 
       default:
         return new ExecuteStatementResp(StatusUtil.success(), false);

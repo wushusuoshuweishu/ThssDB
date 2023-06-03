@@ -62,7 +62,7 @@ public class Table implements Iterable<Row> {
       if (this.index.contains(row.getEntries().get(this.primaryIndex)))
         throw new DuplicateKeyException();
       this.index.put(row.getEntries().get(this.primaryIndex), row);
-      System.out.println(row);
+
     } finally {
       this.lock.writeLock().unlock();
     }
@@ -75,7 +75,7 @@ public class Table implements Iterable<Row> {
       if (!this.index.contains(row.getEntries().get(this.primaryIndex)))
         throw new KeyNotExistException();
       this.index.remove(row.getEntries().get(this.primaryIndex));
-      System.out.println(row);
+
     } finally {
       this.lock.writeLock().unlock();
     }

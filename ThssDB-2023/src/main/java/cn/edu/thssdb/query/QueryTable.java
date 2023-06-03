@@ -16,7 +16,6 @@ public class QueryTable implements Iterator<Row> {
 
   public QueryTable(Table table) {
     // TODO    单个table的选择
-    System.out.println("wad" + table.toString());
     this.columns = new ArrayList<>();
     for (Column the_column : table.columns) {
       Column newcolumn =
@@ -30,7 +29,6 @@ public class QueryTable implements Iterator<Row> {
     }
 
     for (Row the_row : table) {
-
       this.rows.add(the_row);
     }
   }
@@ -38,7 +36,6 @@ public class QueryTable implements Iterator<Row> {
   public QueryTable(QueryTable x_table, QueryTable y_table, SQLParser.ConditionContext joinCon) {
 
     (this.columns = new ArrayList<>(x_table.columns)).addAll(y_table.columns);
-    this.rows = new ArrayList<>();
 
     String xColumnName = null, yColumnName = null;
     int xColumnIndex = -1, yColumnIndex = -1;
@@ -57,13 +54,13 @@ public class QueryTable implements Iterator<Row> {
         }
       }
     }
-
     // 判断是否连接起来两个ROW
     for (Row x_row : x_table.rows) {
       for (Row y_row : y_table.rows) {
         if (joinCon != null) {
           Entry leftRefValue = x_row.getEntries().get(xColumnIndex);
           Entry rightRefValue = y_row.getEntries().get(yColumnIndex);
+
           if (!leftRefValue.equals(rightRefValue)) {
             continue;
           }

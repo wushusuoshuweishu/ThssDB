@@ -12,8 +12,15 @@ public class Entry implements Comparable<Entry>, Serializable {
     this.value = value;
   }
 
+  public Entry(Integer value) {
+    this.value = value;
+  }
+
   @Override
   public int compareTo(Entry e) {
+    if (getValueType().compareTo("UNKNOWN") == 0) {
+      return value.compareTo(e);
+    }
     return value.compareTo(e.value);
   }
 
