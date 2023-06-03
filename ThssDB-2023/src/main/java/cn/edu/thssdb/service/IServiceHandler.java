@@ -545,11 +545,7 @@ public class IServiceHandler implements IService.Iface {
         for (Row the_row : queryTable.rows) {
           ArrayList<Entry> finalRowEntry = new ArrayList<>();
           for (int index : finalIndexs) {
-            try {
-              finalRowEntry.add(the_row.getEntries().get(index));
-            } catch (Exception e) {
-              return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
-            }
+            finalRowEntry.add(the_row.getEntries().get(index));
           }
           finalRows.add(new Row(finalRowEntry));
         }
@@ -568,6 +564,7 @@ public class IServiceHandler implements IService.Iface {
         return resp;
 
       default:
+        System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
   }
