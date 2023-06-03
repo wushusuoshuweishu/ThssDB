@@ -89,6 +89,7 @@ public class CRUDTestExecutor extends TestExecutor {
         client.executeStatement(sb.toString());
         LOGGER.info(sb.toString()); // add by djk at 2023.6.3 for debug
         tableData.add(rowData);
+        LOGGER.info(sb.toString());
       }
       dataMap.put(tableName, tableData);
     }
