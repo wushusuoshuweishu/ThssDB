@@ -144,9 +144,13 @@ public class IServiceHandler implements IService.Iface {
         System.out.println("[DEBUG] " + plan);
         DropDatabasePlan drop_plan = (DropDatabasePlan) plan;
         String drop_name = drop_plan.getDatabaseName();
-        manager.deleteDatabase(drop_name);
-        manager.persist();
-        return new ExecuteStatementResp(StatusUtil.success(), false);
+        try {
+          manager.deleteDatabase(drop_name);
+          manager.persist();
+          return new ExecuteStatementResp(StatusUtil.success(), false);
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
 
       case USE_DB:
         System.out.println("[DEBUG] " + plan);
@@ -415,7 +419,7 @@ public class IServiceHandler implements IService.Iface {
           }
           for (SQLParser.ValueEntryContext value : valueEntry) {
             if (value.literalValue().size() != columnslist.size()) {
-              throw new RuntimeException("insert ROW don't match column!");
+              throw new RuntimeException();
             }
             ArrayList<Entry> entries = new ArrayList<>();
 
@@ -539,7 +543,11 @@ public class IServiceHandler implements IService.Iface {
         for (Row the_row : queryTable.rows) {
           ArrayList<Entry> finalRowEntry = new ArrayList<>();
           for (int index : finalIndexs) {
-            finalRowEntry.add(the_row.getEntries().get(index));
+            try {
+              finalRowEntry.add(the_row.getEntries().get(index));
+            } catch (Exception e) {
+              return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+            }
           }
           finalRows.add(new Row(finalRowEntry));
         }
