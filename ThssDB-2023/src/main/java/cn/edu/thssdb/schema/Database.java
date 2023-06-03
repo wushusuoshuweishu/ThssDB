@@ -40,7 +40,6 @@ public class Database {
         outputStreamWriter.close();
         fileOutputStream.close();
       } catch (Exception e) {
-        // throw new FileIOException(filename);
         throw new RuntimeException();
       }
     }
@@ -67,9 +66,8 @@ public class Database {
       String filename = table.getTableMetaPath();
       File file = new File(filename);
       if (file.isFile() && !file.delete())
-        // throw new FileIOException(name + " _meta  when drop a table in database");
         throw new RuntimeException();
-      table.dropTable(); // 文件处删除
+      table.dropTable();
       this.tables.remove(name);
     } finally {
       this.lock.writeLock().unlock();
@@ -86,6 +84,10 @@ public class Database {
       }
       this.tables.clear();
       this.tables = null;
+      File database_file = new File(this.getDatabasePath());
+      File database_tables_file = new File(this.getDatabasePath() + File.separator + "tables");
+      database_tables_file.delete();
+      database_file.delete();
     } finally {
       lock.writeLock().unlock();
     }
@@ -102,7 +104,6 @@ public class Database {
     System.out.println("! try to recover database " + this.name);
     File tableFolder = new File(this.getDatabaseTableFolderPath());
     File[] files = tableFolder.listFiles();
-    //        for(File f: files) System.out.println("...." + f.getName());
     if (files == null) return;
 
     for (File file : files) {
@@ -111,7 +112,6 @@ public class Database {
         String fileName = file.getName();
         String tableName = fileName.substring(0, fileName.length() - Global.META_SUFFIX.length());
         if (this.tables.containsKey(tableName))
-          // throw new DuplicateTableException(tableName);
           throw new RuntimeException();
 
         ArrayList<Column> columnList = new ArrayList<>();
