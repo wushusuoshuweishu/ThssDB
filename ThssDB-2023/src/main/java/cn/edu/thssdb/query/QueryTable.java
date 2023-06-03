@@ -33,6 +33,25 @@ public class QueryTable implements Iterator<Row> {
     }
   }
 
+  public QueryTable(Table table, int i) {
+    // TODO    单个table的选择
+    this.columns = new ArrayList<>();
+    for (Column the_column : table.columns) {
+      Column newcolumn =
+          new Column(
+              the_column.getColumnName(),
+              the_column.getColumnType(),
+              the_column.getPrimary(),
+              the_column.nonNullable(),
+              the_column.getMaxLength());
+      this.columns.add(newcolumn);
+    }
+
+    for (Row the_row : table) {
+      this.rows.add(the_row);
+    }
+  }
+
   public QueryTable(QueryTable x_table, QueryTable y_table, SQLParser.ConditionContext joinCon) {
 
     (this.columns = new ArrayList<>(x_table.columns)).addAll(y_table.columns);

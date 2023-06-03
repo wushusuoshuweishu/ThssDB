@@ -419,7 +419,7 @@ public class IServiceHandler implements IService.Iface {
           }
           for (SQLParser.ValueEntryContext value : valueEntry) {
             if (value.literalValue().size() != columnslist.size()) {
-              throw new RuntimeException();
+              throw new RuntimeException("insert ROW don't match column!");
             }
             ArrayList<Entry> entries = new ArrayList<>();
 
@@ -494,9 +494,8 @@ public class IServiceHandler implements IService.Iface {
         if (query.getChildCount() == 1) { // 单个table   success!
           queryTable =
               new QueryTable(
-                  manager
-                      .getCurrentDatabase()
-                      .getTable(query.tableName(0).getText().toLowerCase()));
+                  manager.getCurrentDatabase().getTable(query.tableName(0).getText().toLowerCase()),
+                  1);
         } else {
 
           x_table =
@@ -532,6 +531,7 @@ public class IServiceHandler implements IService.Iface {
           String s_columnName = columnContext.columnFullName().getText().toLowerCase();
           finalNames.add(s_columnName);
           int index = -1;
+
           for (int i = 0; i < queryTable.columns.size(); i++) {
             if (queryTable.columns.get(i).getColumnName().equals(s_columnName)) {
               index = i;
@@ -543,11 +543,7 @@ public class IServiceHandler implements IService.Iface {
         for (Row the_row : queryTable.rows) {
           ArrayList<Entry> finalRowEntry = new ArrayList<>();
           for (int index : finalIndexs) {
-            try {
-              finalRowEntry.add(the_row.getEntries().get(index));
-            } catch (Exception e) {
-              return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
-            }
+            finalRowEntry.add(the_row.getEntries().get(index));
           }
           finalRows.add(new Row(finalRowEntry));
         }
