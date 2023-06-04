@@ -107,9 +107,16 @@ public class Table implements Iterable<Row> {
       if (!tableFile.exists() ? !tableFile.createNewFile() : !tableFile.isFile())
         throw new RuntimeException();
       FileOutputStream fileOutputStream = new FileOutputStream(this.getTablePath());
-      ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
-      for (Row row : this) objectOutputStream.writeObject(row);
-      objectOutputStream.close();
+      // ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+      OutputStreamWriter writer = new OutputStreamWriter(fileOutputStream);
+      for (Row row : this) {
+        // objectOutputStream.writeObject(row);
+        String RowStr = row.toString();
+        writer.write(RowStr + "\n");
+      }
+
+      // objectOutputStream.close();
+      writer.close();
       fileOutputStream.close();
     } catch (IOException e) {
       throw new RuntimeException();
