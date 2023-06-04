@@ -88,6 +88,37 @@ public class Column implements Comparable<Column> {
     }
   }
 
+  public static Entry recoverparseEntry(String s, Column column) {
+    ColumnType columnType = column.getColumnType();
+    if (s.equals(Global.ENTRY_NULL)) {
+      if (column.nonNullable()) throw new RuntimeException("wrong null");
+      else {
+        Entry tmp = new Entry(Global.ENTRY_NULL);
+        tmp.value = null;
+        return tmp;
+      }
+    }
+    switch (columnType) {
+      case INT:
+        return new Entry(Integer.valueOf(s));
+      case LONG:
+        return new Entry(Long.valueOf(s));
+      case FLOAT:
+        return new Entry(Float.valueOf(s));
+      case DOUBLE:
+        return new Entry(Double.valueOf(s));
+      case STRING:
+        String sWithoutQuotes = s;
+        if (sWithoutQuotes.length() > column.getMaxLength())
+          throw new RuntimeException("length wrong");
+        return new Entry(sWithoutQuotes);
+      default:
+        Entry tmp = new Entry(Global.ENTRY_NULL);
+        tmp.value = null;
+        return tmp;
+    }
+  }
+
   public String toString() {
     return name + ',' + type + ',' + primary + ',' + notNull + ',' + maxLength;
   }
