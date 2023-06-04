@@ -107,15 +107,12 @@ public class Table implements Iterable<Row> {
       if (!tableFile.exists() ? !tableFile.createNewFile() : !tableFile.isFile())
         throw new RuntimeException();
       FileOutputStream fileOutputStream = new FileOutputStream(this.getTablePath());
-      // ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
       OutputStreamWriter writer = new OutputStreamWriter(fileOutputStream);
       for (Row row : this) {
-        // objectOutputStream.writeObject(row);
         String RowStr = row.toString();
         writer.write(RowStr + "\n");
       }
 
-      // objectOutputStream.close();
       writer.close();
       fileOutputStream.close();
     } catch (IOException e) {
@@ -133,9 +130,7 @@ public class Table implements Iterable<Row> {
       File tableFile = new File(this.getTablePath());
       if (!tableFile.exists()) return new ArrayList<>();
       FileInputStream fileInputStream = new FileInputStream(this.getTablePath());
-      // ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
       ArrayList<Row> rowsOnDisk = new ArrayList<>();
-      // Object tmpObj;
       InputStreamReader reader = new InputStreamReader(fileInputStream);
       BufferedReader bufferedReader = new BufferedReader(reader);
       String line;
