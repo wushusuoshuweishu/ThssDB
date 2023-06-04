@@ -8,6 +8,8 @@ import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -126,17 +128,27 @@ public class Table implements Iterable<Row> {
       File tableFile = new File(this.getTablePath());
       if (!tableFile.exists()) return new ArrayList<>();
       FileInputStream fileInputStream = new FileInputStream(this.getTablePath());
-      ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+      // ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
       ArrayList<Row> rowsOnDisk = new ArrayList<>();
-      Object tmpObj;
-      while (fileInputStream.available() > 0) {
-        tmpObj = objectInputStream.readObject();
-        rowsOnDisk.add((Row) tmpObj);
+      // Object tmpObj;
+      InputStreamReader reader = new InputStreamReader(fileInputStream);
+      BufferedReader bufferedReader = new BufferedReader(reader);
+      String line;
+      while ((line = bufferedReader.readLine()) != null) {
+        // 处理读取到的一行内容
+        System.out.println(line);
+        String[] entries_str = line.split(", ");
+        ArrayList<Entry> entries = new ArrayList<>();
+        for (int i = 0; i < columns.size(); i++){
+          entries.add(Column.parseEntry(entries_str[i], columns.get(i)));
+        }
+        rowsOnDisk.add(new Row(entries));
       }
-      objectInputStream.close();
-      fileInputStream.close();
+      // 关闭流
+      bufferedReader.close();
+      reader.close();
       return rowsOnDisk;
-    } catch (IOException | ClassNotFoundException e) {
+    } catch (IOException e) {
       throw new RuntimeException();
     }
   }
