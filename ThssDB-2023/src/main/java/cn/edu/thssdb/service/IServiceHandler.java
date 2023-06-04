@@ -564,6 +564,7 @@ public class IServiceHandler implements IService.Iface {
         return resp;
 
       default:
+        System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
   }
