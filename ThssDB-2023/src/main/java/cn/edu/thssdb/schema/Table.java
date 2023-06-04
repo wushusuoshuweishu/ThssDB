@@ -8,8 +8,6 @@ import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.Pair;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -146,7 +144,7 @@ public class Table implements Iterable<Row> {
         System.out.println(line);
         String[] entries_str = line.split(", ");
         ArrayList<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < columns.size(); i++){
+        for (int i = 0; i < columns.size(); i++) {
           entries.add(Column.parseEntry(entries_str[i], columns.get(i)));
         }
         rowsOnDisk.add(new Row(entries));
