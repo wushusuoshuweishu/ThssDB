@@ -145,7 +145,7 @@ public class Table implements Iterable<Row> {
         String[] entries_str = line.split(", ");
         ArrayList<Entry> entries = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-          entries.add(Column.parseEntry(entries_str[i], columns.get(i)));
+          entries.add(Column.recoverparseEntry(entries_str[i], columns.get(i)));
         }
         rowsOnDisk.add(new Row(entries));
       }
