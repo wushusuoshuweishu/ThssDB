@@ -121,7 +121,7 @@ public class Database {
         reader.close();
         Table table = new Table(this.name, tableName, columnList.toArray(new Column[0]));
 
-        for (Row row : table) System.out.println(row.toString());
+        // for (Row row : table) System.out.println(row.toString());
         this.tables.put(tableName, table);
       } catch (Exception ignored) {
       }

@@ -133,7 +133,7 @@ public class IServiceHandler implements IService.Iface {
     LogicalPlan plan = LogicalGenerator.generate(req.statement);
     switch (plan.getType()) {
       case CREATE_DB:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         CreateDatabasePlan the_plan = (CreateDatabasePlan) plan;
         String name = the_plan.getDatabaseName();
         manager.createDatabaseIfNotExists(name);
@@ -141,7 +141,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case DROP_DB:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         DropDatabasePlan drop_plan = (DropDatabasePlan) plan;
         String drop_name = drop_plan.getDatabaseName();
         try {
@@ -153,14 +153,14 @@ public class IServiceHandler implements IService.Iface {
         }
 
       case USE_DB:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         UseDatabasePlan use_plan = (UseDatabasePlan) plan;
         String use_name = use_plan.getDatabase();
         manager.switchDatabase(use_name);
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case CREATE_TABLE:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         CreateTablePlan ct_plan = (CreateTablePlan) plan;
         SQLParser.CreateTableStmtContext ctx = ct_plan.getCtx();
         Database database = manager.getCurrentDatabase();
@@ -299,7 +299,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SHOW_TABLE:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
         String tableName = showTablePlan.getTableName();
         ArrayList<String> showTableInfoResult =
@@ -310,7 +310,7 @@ public class IServiceHandler implements IService.Iface {
         return showTableResp;
 
       case DROP_TABLE:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         String dr_tableName = dropTablePlan.getTableName().toLowerCase();
         manager.currentDatabase.drop(dr_tableName);
@@ -319,7 +319,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case DELETE_ROW:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         DeletePlan deletePlan = (DeletePlan) plan;
         SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
         String d_tableName = d_ctx.tableName().children.get(0).toString().toLowerCase();
@@ -385,7 +385,7 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case INSERT_ROW:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         InsertPlan insertPlan = (InsertPlan) plan;
         SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
         String itablename = insert_ctx.tableName().children.get(0).toString().toLowerCase();
@@ -435,7 +435,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case UPDATE_COLUMN:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         UpdateColumnPlan updateColumnPlan = (UpdateColumnPlan) plan;
         SQLParser.UpdateStmtContext updateStmtCTX = updateColumnPlan.getctx();
         String updateColumnTableName = updateStmtCTX.tableName().children.get(0).toString();
@@ -484,7 +484,7 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SELECT_TABLE:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         SelectPlan select_plan = (SelectPlan) plan;
         SQLParser.SelectStmtContext s_ctx = select_plan.getCtx();
 
@@ -564,7 +564,7 @@ public class IServiceHandler implements IService.Iface {
         return resp;
 
       default:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
   }

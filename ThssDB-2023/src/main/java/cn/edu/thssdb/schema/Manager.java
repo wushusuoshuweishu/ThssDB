@@ -14,7 +14,8 @@ public class Manager {
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   public ArrayList<Long> transaction_sessions = new ArrayList<Long>();
-  public HashMap<Long, ArrayList<String>> s_lock_dict = new HashMap<Long, ArrayList<String>>();       //记录每个session取得了哪些表的s锁
+  public HashMap<Long, ArrayList<String>> s_lock_dict =
+      new HashMap<Long, ArrayList<String>>(); // 记录每个session取得了哪些表的s锁
   public HashMap<Long, ArrayList<String>> x_lock_dict = new HashMap<Long, ArrayList<String>>();
 
   public static Manager getInstance() {
