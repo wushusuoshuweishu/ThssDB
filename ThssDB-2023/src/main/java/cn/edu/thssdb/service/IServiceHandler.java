@@ -308,6 +308,7 @@ public class IServiceHandler implements IService.Iface {
         return showTableResp;
 
       case DROP_TABLE:
+        System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         String dr_tableName = dropTablePlan.getTableName().toLowerCase();
         manager.currentDatabase.drop(dr_tableName);
@@ -811,7 +812,7 @@ public class IServiceHandler implements IService.Iface {
         }
         return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
-        System.out.println("[DEBUG] " + plan);
+        // System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
     }
   }

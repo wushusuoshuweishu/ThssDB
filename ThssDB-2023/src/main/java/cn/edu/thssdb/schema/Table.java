@@ -172,6 +172,7 @@ public class Table implements Iterable<Row> {
       FileOutputStream fileOutputStream = new FileOutputStream(this.getTablePath());
       OutputStreamWriter writer = new OutputStreamWriter(fileOutputStream);
       for (Row row : this) {
+        // System.out.println(row.toString());
         String RowStr = row.toString();
         writer.write(RowStr + "\n");
       }

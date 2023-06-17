@@ -27,9 +27,12 @@ public class BPlusTreeIterator<K extends Comparable<K>, V> implements Iterator<P
       while (true) {
         BPlusTreeNode<K, V> node = queue.poll();
         if (node instanceof BPlusTreeLeafNode) {
-          for (int i = 0; i < node.size(); i++)
-            buffer.add(
-                new Pair<>(node.keys.get(i), ((BPlusTreeLeafNode<K, V>) node).values.get(i)));
+          BPlusTreeLeafNode<K, V> leafNode = (BPlusTreeLeafNode<K, V>) node;
+          leafNode.values = leafNode.deserialize();
+          for (int i = 0; i < node.size(); i++) {
+            buffer.add(new Pair<>(node.keys.get(i), leafNode.values.get(i)));
+          }
+          leafNode.serialize();
           break;
         } else if (node instanceof BPlusTreeInternalNode)
           for (int i = 0; i <= node.size(); i++)
