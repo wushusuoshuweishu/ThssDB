@@ -56,6 +56,8 @@ public class TransactionTestExecutor extends TestExecutor {
 
   public void testLostUpdate() throws Exception {
     CompletableFuture<Void> future;
+    System.out.println("client1 session id:" + client1.sessionId);
+    System.out.println("client2 session id:" + client2.sessionId);
     client1.executeStatement("begin transaction");
     client2.executeStatement("begin transaction");
     try {

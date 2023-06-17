@@ -17,7 +17,7 @@ public class Client {
 
   private String password = CommonConfig.password;
 
-  private long sessionId;
+  public long sessionId;
 
   public Client() throws TException {
     transport = new TSocket(CommonConfig.host, CommonConfig.port);

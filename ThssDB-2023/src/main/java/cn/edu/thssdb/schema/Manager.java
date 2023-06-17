@@ -14,7 +14,9 @@ public class Manager {
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   public ArrayList<Long> transaction_sessions = new ArrayList<Long>();
-  public HashMap<Long, ArrayList<String>> s_lock_dict = new HashMap<Long, ArrayList<String>>();       //记录每个session取得了哪些表的s锁
+  public ArrayList<Long> session_queue = new ArrayList<Long>();
+  public HashMap<Long, ArrayList<String>> s_lock_dict =
+      new HashMap<Long, ArrayList<String>>(); // 记录每个session取得了哪些表的s锁
   public HashMap<Long, ArrayList<String>> x_lock_dict = new HashMap<Long, ArrayList<String>>();
 
   public static Manager getInstance() {
@@ -92,12 +94,10 @@ public class Manager {
     File managerDataFile = new File(Manager.getManagerDataFilePath());
     if (!managerDataFile.isFile()) return;
     try {
-      System.out.println("try to recover manager");
       InputStreamReader reader = new InputStreamReader(new FileInputStream(managerDataFile));
       BufferedReader bufferedReader = new BufferedReader(reader);
       String line;
       while ((line = bufferedReader.readLine()) != null) {
-        System.out.println("recover database " + line);
         createDatabaseIfNotExists(line);
         readLog(line);
       }
@@ -114,12 +114,10 @@ public class Manager {
     if (!logFile.isFile()) return;
     try {
       currentDatabase = databases.get(databaseName);
-      System.out.println("try to recover " + databaseName + " log");
       InputStreamReader reader = new InputStreamReader(new FileInputStream(logFile));
       BufferedReader bufferedReader = new BufferedReader(reader);
       String line;
       while ((line = bufferedReader.readLine()) != null) {
-        System.out.println("[INFO] reading " + line);
         long session = Long.parseLong(line.split("@")[0]);
         String statement = line.split("@")[1];
         // sqlHandler.evaluate(statement, session, true);

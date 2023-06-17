@@ -56,8 +56,6 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
   // 创建表
   @Override
   public LogicalPlan visitCreateTableStmt(SQLParser.CreateTableStmtContext ctx) {
-    System.out.println("will create table");
-
     return new CreateTablePlan(ctx);
   }
 
@@ -87,5 +85,15 @@ public class ThssDBSQLVisitor extends SQLBaseVisitor<LogicalPlan> {
 
   public LogicalPlan visitSelectStmt(SQLParser.SelectStmtContext ctx) {
     return new SelectPlan(ctx);
+  }
+
+  @Override
+  public LogicalPlan visitBeginTransactionStmt(SQLParser.BeginTransactionStmtContext ctx) {
+    return new BeginTransactionPlan();
+  }
+
+  @Override
+  public LogicalPlan visitCommitStmt(SQLParser.CommitStmtContext ctx) {
+    return new CommitPlan();
   }
 }

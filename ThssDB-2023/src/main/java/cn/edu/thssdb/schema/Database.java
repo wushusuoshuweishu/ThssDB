@@ -99,7 +99,6 @@ public class Database {
 
   private void recover() {
     // TODO
-    System.out.println("! try to recover database " + this.name);
     File tableFolder = new File(this.getDatabaseTableFolderPath());
     File[] files = tableFolder.listFiles();
     if (files == null) return;
@@ -120,8 +119,6 @@ public class Database {
         bufferedReader.close();
         reader.close();
         Table table = new Table(this.name, tableName, columnList.toArray(new Column[0]));
-
-        for (Row row : table) System.out.println(row.toString());
         this.tables.put(tableName, table);
       } catch (Exception ignored) {
       }
@@ -132,7 +129,9 @@ public class Database {
     // TODO
     try {
       this.lock.writeLock().lock();
-      for (Table table : this.tables.values()) table.persist();
+      if (this.tables != null) {
+        for (Table table : this.tables.values()) table.persist();
+      }
       this.persist();
     } finally {
       this.lock.writeLock().unlock();

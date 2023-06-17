@@ -21,17 +21,17 @@ import cn.edu.thssdb.utils.Global;
 import cn.edu.thssdb.utils.StatusUtil;
 import org.apache.thrift.TException;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static cn.edu.thssdb.schema.Column.parseEntry;
 
 public class IServiceHandler implements IService.Iface {
 
   public static Manager manager;
+
+  private static ReentrantReadWriteLock connect_lock = new ReentrantReadWriteLock();
 
   private static final AtomicInteger sessionCnt = new AtomicInteger(0);
 
@@ -50,7 +50,10 @@ public class IServiceHandler implements IService.Iface {
 
   @Override
   public ConnectResp connect(ConnectReq req) throws TException {
-    return new ConnectResp(StatusUtil.success(), sessionCnt.getAndIncrement());
+    connect_lock.writeLock().lock();
+    Long the_session = (long) sessionCnt.getAndIncrement();
+    connect_lock.writeLock().unlock();
+    return new ConnectResp(StatusUtil.success(), the_session);
   }
 
   @Override
@@ -133,7 +136,6 @@ public class IServiceHandler implements IService.Iface {
     LogicalPlan plan = LogicalGenerator.generate(req.statement);
     switch (plan.getType()) {
       case CREATE_DB:
-        System.out.println("[DEBUG] " + plan);
         CreateDatabasePlan the_plan = (CreateDatabasePlan) plan;
         String name = the_plan.getDatabaseName();
         manager.createDatabaseIfNotExists(name);
@@ -141,7 +143,6 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case DROP_DB:
-        System.out.println("[DEBUG] " + plan);
         DropDatabasePlan drop_plan = (DropDatabasePlan) plan;
         String drop_name = drop_plan.getDatabaseName();
         try {
@@ -153,14 +154,12 @@ public class IServiceHandler implements IService.Iface {
         }
 
       case USE_DB:
-        System.out.println("[DEBUG] " + plan);
         UseDatabasePlan use_plan = (UseDatabasePlan) plan;
         String use_name = use_plan.getDatabase();
         manager.switchDatabase(use_name);
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case CREATE_TABLE:
-        System.out.println("[DEBUG] " + plan);
         CreateTablePlan ct_plan = (CreateTablePlan) plan;
         SQLParser.CreateTableStmtContext ctx = ct_plan.getCtx();
         Database database = manager.getCurrentDatabase();
@@ -299,7 +298,6 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SHOW_TABLE:
-        System.out.println("[DEBUG] " + plan);
         ShowTablePlan showTablePlan = (ShowTablePlan) plan;
         String tableName = showTablePlan.getTableName();
         ArrayList<String> showTableInfoResult =
@@ -310,7 +308,6 @@ public class IServiceHandler implements IService.Iface {
         return showTableResp;
 
       case DROP_TABLE:
-        System.out.println("[DEBUG] " + plan);
         DropTablePlan dropTablePlan = (DropTablePlan) plan;
         String dr_tableName = dropTablePlan.getTableName().toLowerCase();
         manager.currentDatabase.drop(dr_tableName);
@@ -319,7 +316,6 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case DELETE_ROW:
-        System.out.println("[DEBUG] " + plan);
         DeletePlan deletePlan = (DeletePlan) plan;
         SQLParser.DeleteStmtContext d_ctx = deletePlan.getctx();
         String d_tableName = d_ctx.tableName().children.get(0).toString().toLowerCase();
@@ -385,7 +381,6 @@ public class IServiceHandler implements IService.Iface {
         manager.getCurrentDatabase().quit();
         return new ExecuteStatementResp(StatusUtil.success(), false);
       case INSERT_ROW:
-        System.out.println("[DEBUG] " + plan);
         InsertPlan insertPlan = (InsertPlan) plan;
         SQLParser.InsertStmtContext insert_ctx = insertPlan.getctx();
         String itablename = insert_ctx.tableName().children.get(0).toString().toLowerCase();
@@ -435,11 +430,13 @@ public class IServiceHandler implements IService.Iface {
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case UPDATE_COLUMN:
-        System.out.println("[DEBUG] " + plan);
         UpdateColumnPlan updateColumnPlan = (UpdateColumnPlan) plan;
         SQLParser.UpdateStmtContext updateStmtCTX = updateColumnPlan.getctx();
         String updateColumnTableName = updateStmtCTX.tableName().children.get(0).toString();
-        String updateColumnColumnName = updateStmtCTX.columnName().children.get(0).toString();
+
+        String updateName = updateStmtCTX.columnName().getText();
+        String updateValue = updateStmtCTX.expression().getText();
+
         String attrName =
             updateStmtCTX
                 .multipleCondition()
@@ -458,7 +455,6 @@ public class IServiceHandler implements IService.Iface {
                 .comparer()
                 .literalValue()
                 .getText();
-        String filterComparer = updateStmtCTX.expression().comparer().literalValue().getText();
         Database updateColumnDatabase = manager.getCurrentDatabase();
         Table updateColumnDatabaseTable = updateColumnDatabase.getTable(updateColumnTableName);
         ArrayList<Row> updateRows =
@@ -466,25 +462,94 @@ public class IServiceHandler implements IService.Iface {
                 updateColumnDatabaseTable.columns,
                 updateColumnDatabaseTable.iterator(),
                 updateStmtCTX.multipleCondition().condition());
-        for (Row row : updateRows) {
-          ArrayList<Entry> rowEntries = new ArrayList<Entry>(row.getEntries());
-          int attrIndex = -1;
-          for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
-            if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(attrName)) {
-              attrIndex = i;
+
+        if (manager.transaction_sessions.contains(req.getSessionId())) {
+          while (true) {
+            if (!manager.session_queue.contains(req.getSessionId())) { // 新加入一个session
+              int get_lock = updateColumnDatabaseTable.get_x_lock(req.getSessionId());
+              if (get_lock != -1) {
+                if (get_lock == 1) {
+                  ArrayList<String> tmp = manager.x_lock_dict.get(req.getSessionId());
+                  tmp.add(updateColumnTableName);
+                  manager.x_lock_dict.put(req.getSessionId(), tmp);
+                }
+                break;
+              } else {
+                manager.session_queue.add(req.getSessionId());
+              }
+            } else { // 之前等待的session
+              if (Objects.equals(
+                  manager.session_queue.get(0), req.getSessionId())) { // 只查看阻塞队列开头session
+                int get_lock = updateColumnDatabaseTable.get_x_lock(req.getSessionId());
+                if (get_lock != -1) {
+                  if (get_lock == 1) {
+                    ArrayList<String> tmp = manager.x_lock_dict.get(req.getSessionId());
+                    tmp.add(updateColumnTableName);
+                    manager.x_lock_dict.put(req.getSessionId(), tmp);
+                  }
+                  manager.session_queue.remove(0);
+                  break;
+                }
+              }
             }
           }
-          rowEntries.set(
-              attrIndex, parseEntry(attrValue, updateColumnDatabaseTable.columns.get(attrIndex)));
-          updateColumnDatabaseTable.update(
-              row.getEntries().get(updateColumnDatabaseTable.getPrimaryIndex()),
-              new Row(rowEntries));
+
+          try {
+            for (Row row : updateRows) {
+              ArrayList<Entry> rowEntries = new ArrayList<Entry>(row.getEntries());
+              // 找到主键index
+              int attrIndex = -1;
+              for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
+                if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(attrName)) {
+                  attrIndex = i;
+                }
+              }
+              int nattrIndex = -1;
+              for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
+                if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(updateName)) {
+                  nattrIndex = i;
+                }
+              }
+              rowEntries.set(
+                  nattrIndex,
+                  parseEntry(updateValue, updateColumnDatabaseTable.columns.get(attrIndex)));
+
+              updateColumnDatabaseTable.update(
+                  row.getEntries().get(updateColumnDatabaseTable.getPrimaryIndex()),
+                  new Row(rowEntries));
+            }
+          } catch (Exception e) {
+            return new ExecuteStatementResp(StatusUtil.fail("update fail"), false);
+          }
+        } else {
+          for (Row row : updateRows) {
+            ArrayList<Entry> rowEntries = new ArrayList<Entry>(row.getEntries());
+            // 找到主键index
+            int attrIndex = -1;
+            for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
+              if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(attrName)) {
+                attrIndex = i;
+              }
+            }
+            int nattrIndex = -1;
+            for (int i = 0; i < updateColumnDatabaseTable.columns.size(); ++i) {
+              if (updateColumnDatabaseTable.columns.get(i).getColumnName().equals(updateName)) {
+                nattrIndex = i;
+              }
+            }
+            rowEntries.set(
+                nattrIndex,
+                parseEntry(updateValue, updateColumnDatabaseTable.columns.get(attrIndex)));
+
+            updateColumnDatabaseTable.update(
+                row.getEntries().get(updateColumnDatabaseTable.getPrimaryIndex()),
+                new Row(rowEntries));
+          }
         }
-        manager.getCurrentDatabase().quit();
+
         return new ExecuteStatementResp(StatusUtil.success(), false);
 
       case SELECT_TABLE:
-        System.out.println("[DEBUG] " + plan);
         SelectPlan select_plan = (SelectPlan) plan;
         SQLParser.SelectStmtContext s_ctx = select_plan.getCtx();
 
@@ -493,76 +558,258 @@ public class IServiceHandler implements IService.Iface {
         QueryTable queryTable = null;
         QueryTable x_table = null;
         QueryTable y_table = null;
-        if (query.getChildCount() == 1) { // 单个table   success!
-          queryTable =
-              new QueryTable(
-                  manager.getCurrentDatabase().getTable(query.tableName(0).getText().toLowerCase()),
-                  1);
-        } else {
 
-          x_table =
-              new QueryTable(
-                  manager
-                      .getCurrentDatabase()
-                      .getTable(query.tableName(0).getText().toLowerCase()));
-          y_table =
-              new QueryTable(
-                  manager
-                      .getCurrentDatabase()
-                      .getTable(query.tableName(1).getText().toLowerCase()));
-
-          SQLParser.ConditionContext joincondition =
-              s_ctx.tableQuery().get(0).multipleCondition().condition();
-          queryTable = new QueryTable(x_table, y_table, joincondition);
+        ArrayList<String> table_names = new ArrayList<>();
+        for (SQLParser.TableNameContext subCtx : s_ctx.tableQuery(0).tableName()) {
+          table_names.add(subCtx.getText().toLowerCase());
         }
-        // 对where中的条件的
-        if (s_ctx.K_WHERE() != null) {
-          SQLParser.ConditionContext selectCondition = s_ctx.multipleCondition().condition();
 
-          ArrayList<Row> newRows =
-              getRowsValidForWhere(queryTable.columns, queryTable.rows.iterator(), selectCondition);
+        if (manager.transaction_sessions.contains(req.getSessionId())) {
+          while (true) {
+            if (!manager.session_queue.contains(req.getSessionId())) // 新加入一个session
+            {
+              ArrayList<Integer> lock_result = new ArrayList<>();
+              for (String ta_name : table_names) {
+                Table the_table = manager.getCurrentDatabase().getTable(ta_name);
+                int get_lock = the_table.get_s_lock(req.getSessionId());
+                lock_result.add(get_lock);
+              }
+              if (lock_result.contains(-1)) {
+                for (String table_name : table_names) {
+                  Table the_table = manager.getCurrentDatabase().getTable(table_name);
+                  the_table.free_s_lock(req.getSessionId());
+                }
+                manager.session_queue.add(req.getSessionId());
 
-          queryTable.rows = newRows;
-        }
-        // 对select进行选择
-
-        List<SQLParser.ResultColumnContext> resultColumn = s_ctx.resultColumn();
-        ArrayList<Integer> finalIndexs = new ArrayList<>();
-        ArrayList<String> finalNames = new ArrayList<>();
-        for (SQLParser.ResultColumnContext columnContext : resultColumn) {
-          String s_columnName = columnContext.columnFullName().getText().toLowerCase();
-          finalNames.add(s_columnName);
-          int index = -1;
-
-          for (int i = 0; i < queryTable.columns.size(); i++) {
-            if (queryTable.columns.get(i).getColumnName().equals(s_columnName)) {
-              index = i;
+              } else {
+                break;
+              }
+            } else // 之前等待的session
+            {
+              if (Objects.equals(
+                  manager.session_queue.get(0), req.getSessionId())) // 只查看阻塞队列开头session
+              {
+                ArrayList<Integer> lock_result = new ArrayList<>();
+                for (String t_name : table_names) {
+                  Table the_table = manager.getCurrentDatabase().getTable(t_name);
+                  int get_lock = the_table.get_s_lock(req.getSessionId());
+                  lock_result.add(get_lock);
+                }
+                if (!lock_result.contains(-1)) {
+                  manager.session_queue.remove(0);
+                  break;
+                } else {
+                  for (String table_name : table_names) {
+                    Table the_table = manager.getCurrentDatabase().getTable(table_name);
+                    the_table.free_s_lock(req.getSessionId());
+                  }
+                }
+              }
             }
           }
-          finalIndexs.add(index);
-        }
-        ArrayList<Row> finalRows = new ArrayList<>();
-        for (Row the_row : queryTable.rows) {
-          ArrayList<Entry> finalRowEntry = new ArrayList<>();
-          for (int index : finalIndexs) {
-            finalRowEntry.add(the_row.getEntries().get(index));
+          try {
+            for (String table_name : table_names) {
+              Table the_table = manager.getCurrentDatabase().getTable(table_name);
+              the_table.free_s_lock(req.getSessionId());
+            }
+            if (query.getChildCount() == 1) { // 单个table   success!
+              queryTable =
+                  new QueryTable(
+                      manager
+                          .getCurrentDatabase()
+                          .getTable(query.tableName(0).getText().toLowerCase()),
+                      1);
+            } else {
+
+              x_table =
+                  new QueryTable(
+                      manager
+                          .getCurrentDatabase()
+                          .getTable(query.tableName(0).getText().toLowerCase()));
+              y_table =
+                  new QueryTable(
+                      manager
+                          .getCurrentDatabase()
+                          .getTable(query.tableName(1).getText().toLowerCase()));
+
+              SQLParser.ConditionContext joincondition =
+                  s_ctx.tableQuery().get(0).multipleCondition().condition();
+              queryTable = new QueryTable(x_table, y_table, joincondition);
+            }
+            // 对where中的条件的
+            if (s_ctx.K_WHERE() != null) {
+              SQLParser.ConditionContext selectCondition = s_ctx.multipleCondition().condition();
+
+              ArrayList<Row> newRows =
+                  getRowsValidForWhere(
+                      queryTable.columns, queryTable.rows.iterator(), selectCondition);
+
+              queryTable.rows = newRows;
+            }
+            // 对select进行选择
+
+            List<SQLParser.ResultColumnContext> resultColumn = s_ctx.resultColumn();
+            ArrayList<Integer> finalIndexs = new ArrayList<>();
+            ArrayList<String> finalNames = new ArrayList<>();
+            for (SQLParser.ResultColumnContext columnContext : resultColumn) {
+              String s_columnName = columnContext.columnFullName().getText().toLowerCase();
+              finalNames.add(s_columnName);
+              int index = -1;
+
+              for (int i = 0; i < queryTable.columns.size(); i++) {
+                if (queryTable.columns.get(i).getColumnName().equals(s_columnName)) {
+                  index = i;
+                }
+              }
+              finalIndexs.add(index);
+            }
+            ArrayList<Row> finalRows = new ArrayList<>();
+            for (Row the_row : queryTable.rows) {
+              ArrayList<Entry> finalRowEntry = new ArrayList<>();
+              for (int index : finalIndexs) {
+                finalRowEntry.add(the_row.getEntries().get(index));
+              }
+              finalRows.add(new Row(finalRowEntry));
+            }
+
+            List<List<String>> finalStr = new ArrayList<>();
+            for (Row row : finalRows) {
+              List<String> rowstr = new ArrayList<>();
+              for (Entry entry : row.getEntries()) {
+                rowstr.add(entry.toString());
+              }
+              finalStr.add(rowstr);
+            }
+
+            ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
+            resp.rowList = finalStr;
+            resp.columnsList = finalNames;
+            return resp;
+          } catch (Exception e) {
+            return new ExecuteStatementResp(StatusUtil.fail("select fail"), false);
           }
-          finalRows.add(new Row(finalRowEntry));
+        } else {
+          if (query.getChildCount() == 1) { // 单个table   success!
+            queryTable =
+                new QueryTable(
+                    manager
+                        .getCurrentDatabase()
+                        .getTable(query.tableName(0).getText().toLowerCase()),
+                    1);
+          } else {
+
+            x_table =
+                new QueryTable(
+                    manager
+                        .getCurrentDatabase()
+                        .getTable(query.tableName(0).getText().toLowerCase()));
+            y_table =
+                new QueryTable(
+                    manager
+                        .getCurrentDatabase()
+                        .getTable(query.tableName(1).getText().toLowerCase()));
+
+            SQLParser.ConditionContext joincondition =
+                s_ctx.tableQuery().get(0).multipleCondition().condition();
+            queryTable = new QueryTable(x_table, y_table, joincondition);
+          }
+          // 对where中的条件的
+          if (s_ctx.K_WHERE() != null) {
+            SQLParser.ConditionContext selectCondition = s_ctx.multipleCondition().condition();
+
+            ArrayList<Row> newRows =
+                getRowsValidForWhere(
+                    queryTable.columns, queryTable.rows.iterator(), selectCondition);
+
+            queryTable.rows = newRows;
+          }
+          // 对select进行选择
+
+          List<SQLParser.ResultColumnContext> resultColumn = s_ctx.resultColumn();
+          ArrayList<Integer> finalIndexs = new ArrayList<>();
+          ArrayList<String> finalNames = new ArrayList<>();
+          for (SQLParser.ResultColumnContext columnContext : resultColumn) {
+            String s_columnName = columnContext.columnFullName().getText().toLowerCase();
+            finalNames.add(s_columnName);
+            int index = -1;
+
+            for (int i = 0; i < queryTable.columns.size(); i++) {
+              if (queryTable.columns.get(i).getColumnName().equals(s_columnName)) {
+                index = i;
+              }
+            }
+            finalIndexs.add(index);
+          }
+          ArrayList<Row> finalRows = new ArrayList<>();
+          for (Row the_row : queryTable.rows) {
+            ArrayList<Entry> finalRowEntry = new ArrayList<>();
+            for (int index : finalIndexs) {
+              finalRowEntry.add(the_row.getEntries().get(index));
+            }
+            finalRows.add(new Row(finalRowEntry));
+          }
+
+          List<List<String>> finalStr = new ArrayList<>();
+          for (Row row : finalRows) {
+            List<String> rowstr = new ArrayList<>();
+            for (Entry entry : row.getEntries()) {
+              rowstr.add(entry.toString());
+            }
+            finalStr.add(rowstr);
+          }
+          ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
+          resp.rowList = finalStr;
+          resp.columnsList = finalNames;
+          return resp;
         }
 
-        List<List<String>> finalStr = new ArrayList<>();
-        for (Row row : finalRows) {
-          List<String> rowstr = new ArrayList<>();
-          for (Entry entry : row.getEntries()) {
-            rowstr.add(entry.toString());
+      case BEGIN_TRANSACTION:
+        try {
+          if (manager.transaction_sessions == null
+              || !manager.transaction_sessions.contains(req.getSessionId())) {
+            if (manager.transaction_sessions != null) {
+              manager.transaction_sessions.add(req.getSessionId());
+            }
+            ArrayList<String> s_lock_tables = new ArrayList<>();
+            ArrayList<String> x_lock_tables = new ArrayList<>();
+            manager.s_lock_dict.put(req.getSessionId(), s_lock_tables);
+            manager.x_lock_dict.put(req.getSessionId(), x_lock_tables);
+          } else {
+            System.out.println("session already in a transaction.");
           }
-          finalStr.add(rowstr);
-        }
-        ExecuteStatementResp resp = new ExecuteStatementResp(StatusUtil.success(), true);
-        resp.rowList = finalStr;
-        resp.columnsList = finalNames;
-        return resp;
 
+        } catch (Exception e) {
+          // return e.getMessage();
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+
+        return new ExecuteStatementResp(StatusUtil.success(), false);
+      case COMMIT:
+        try {
+          if (manager.transaction_sessions.contains(req.getSessionId())) {
+            Database the_database = manager.getCurrentDatabase();
+            manager.transaction_sessions.remove(req.getSessionId());
+            ArrayList<String> table_list = manager.x_lock_dict.get(req.getSessionId());
+            // ArrayList<String> s_table_list = manager.x_lock_dict.get(req.getSessionId());
+            for (String table_name : table_list) {
+              Table the_table = the_database.getTable(table_name);
+              the_table.free_x_lock(req.getSessionId());
+            }
+            /*for (String table_name : s_table_list) {
+              Table the_table = the_database.getTable(table_name);
+              the_table.free_s_lock(req.getSessionId());
+            }*/
+            table_list.clear();
+            // s_table_list.clear();
+            manager.x_lock_dict.put(req.getSessionId(), table_list);
+            // manager.s_lock_dict.put(req.getSessionId(), s_table_list);
+          } else {
+            System.out.println("session not in a transaction.");
+          }
+        } catch (Exception e) {
+          return new ExecuteStatementResp(StatusUtil.fail(e.getMessage()), false);
+        }
+        return new ExecuteStatementResp(StatusUtil.success(), false);
       default:
         System.out.println("[DEBUG] " + plan);
         return new ExecuteStatementResp(StatusUtil.success(), false);
