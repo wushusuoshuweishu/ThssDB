@@ -28,6 +28,9 @@ public class Manager {
     databases = new HashMap<>();
     currentDatabase = null;
     File managerFolder = new File(Global.DBMS_DIR + File.separator + "data");
+    String folderPath =
+        Global.DBMS_DIR + File.separator + "data" + File.separator + "BPlusTree"; // 设置要删除的文件夹路径
+    deleteFolder(new File(folderPath));
     if (!managerFolder.exists()) managerFolder.mkdirs();
     this.recover();
   }
@@ -127,6 +130,18 @@ public class Manager {
     } catch (Exception e) {
       throw new RuntimeException();
     }
+  }
+
+  public static void deleteFolder(File folder) {
+    if (folder.isDirectory()) {
+      File[] files = folder.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteFolder(file); // 递归调用删除子文件夹和文件
+        }
+      }
+    }
+    folder.delete(); // 删除空文件夹或文件
   }
 
   private static class ManagerHolder {
