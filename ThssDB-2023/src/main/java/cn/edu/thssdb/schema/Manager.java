@@ -4,6 +4,7 @@ import cn.edu.thssdb.exception.DatabaseNotExistException;
 import cn.edu.thssdb.utils.Global;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -11,6 +12,10 @@ public class Manager {
   private HashMap<String, Database> databases;
   public Database currentDatabase;
   private static ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+  public ArrayList<Long> transaction_sessions = new ArrayList<Long>();
+  public HashMap<Long, ArrayList<String>> s_lock_dict = new HashMap<Long, ArrayList<String>>();       //记录每个session取得了哪些表的s锁
+  public HashMap<Long, ArrayList<String>> x_lock_dict = new HashMap<Long, ArrayList<String>>();
 
   public static Manager getInstance() {
     return Manager.ManagerHolder.INSTANCE;

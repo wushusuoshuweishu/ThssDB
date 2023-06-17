@@ -22,6 +22,9 @@ public class Table implements Iterable<Row> {
   public ArrayList<Column> columns;
   public BPlusTree<Entry, Row> index;
   private int primaryIndex;
+  int sxlock = 0;    //记录x,s加锁情况
+  public ArrayList<Long> s_lock_list = new ArrayList<Long>();
+  public ArrayList<Long> x_lock_list = new ArrayList<Long>();
 
   public Table(String databaseName, String tableName, Column[] columns) {
     // TODO
@@ -41,6 +44,65 @@ public class Table implements Iterable<Row> {
     if (this.primaryIndex < 0) throw new PrimaryErrorException(this.tableName, 1);
 
     recover();
+  }
+  public int get_s_lock(long session){
+    int value = 0;                       //返回-1代表加锁失败  返回0代表成功但未加锁  返回1代表成功加锁
+    if(sxlock==2){
+      if(x_lock_list.contains(session)){   //自身已经有更高级的锁了 用x锁去读，未加锁
+        value = 0;
+      }else{
+        value = -1;                      //别的session占用x锁，未加锁
+      }
+    }else if(sxlock==1){
+      if(s_lock_list.contains(session)){    //自身已经有s锁了 用s锁去读，未加锁
+        value = 0;
+      }else{
+        s_lock_list.add(session);         //其他session加了s锁 把自己加上
+        sxlock = 1;
+        value = 1;
+      }
+    }else if(sxlock==0){
+      s_lock_list.add(session);              //未加锁 把自己加上
+      sxlock = 1;
+      value = 1;
+    }
+    return value;
+  }
+  public int get_x_lock(long session){
+    int value = 0;                    //返回-1代表加锁失败  返回0代表成功但未加锁  返回1代表成功加锁
+    if(sxlock==2){
+      if(x_lock_list.contains(session)){     //自身已经取得x锁
+        value = 0;
+      }else{
+        value = -1;                      //获取x锁失败
+      }
+    }else if(sxlock==1){
+      value = -1;                          //正在被其他s锁占用
+    }else if(sxlock==0){
+      x_lock_list.add(session);
+      sxlock = 2;
+      value = 1;
+    }
+    return value;
+  }
+  public void free_s_lock(long session){
+    if(s_lock_list.contains(session))
+    {
+      s_lock_list.remove(session);
+      if(s_lock_list.size()==0){
+        sxlock = 0;
+      }else{
+        sxlock = 1;
+      }
+    }
+  }
+
+
+  public void free_x_lock(long session) {
+    if(x_lock_list.contains(session)) {
+      sxlock = 0;
+      x_lock_list.remove(session);
+    }
   }
 
   private void recover() {
